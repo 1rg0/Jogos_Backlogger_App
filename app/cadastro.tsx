@@ -1,282 +1,225 @@
-// Importa o hook 'useRouter' do Expo Router. É ele que nos permite navegar (ir e voltar) entre as telas.
 import { useRouter } from 'expo-router';
-
-// Importa o React e o hook 'useState'.
-// 'useState' é a memória do componente.
 import React, { useState } from 'react';
-
-// Importa os componentes visuais nativos do React Native.
-// - Alert: Para mostrar popups de aviso.
-// - KeyboardAvoidingView: Para o teclado não cobrir a tela.
-// - Platform: Para saber se é Android ou iOS (comportamentos diferentes).
-// - ScrollView: Para a tela rolar se for maior que o celular.
-// - StyleSheet: Para criar o CSS (estilos).
-// - Text: Para escrever textos.
-// - TextInput: A caixa de digitação.
-// - TouchableOpacity: Qualquer coisa que você queira clicar (botões).
 import {
   Alert,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
-  Text, TextInput,
+  Text,
+  TextInput,
   TouchableOpacity,
-  View
+  View,
+  ActivityIndicator
 } from 'react-native';
-
-// Importa a nossa configuração do Axios (o mensageiro que fala com o Backend).
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; 
 import api from '../src/services/api';
 
-// Importa a Interface TypeScript que define como deve ser o objeto de usuário.
-import { UsuarioCreateDTO } from '../src/types/UsuarioDTO';
-
-// Define a função principal da tela. O 'export default' diz que este arquivo "entrega" essa tela para quem chamar.
 export default function CadastroScreen() {
-
-  // Cria a variável 'router' usando o hook. Agora podemos chamar router.back() ou router.push().
   const router = useRouter();
-
-  // --- ESTADOS (useState) ---
-  // Sintaxe: const [variávelLeitura, funcaoModificadora] = useState(valorInicial);
-
-  // Guarda o nome digitado. Começa vazio ('').
+  const insets = useSafeAreaInsets(); 
+  
+  const [loading, setLoading] = useState(false);
   const [nome, setNome] = useState('');
-  
-  // Guarda o email digitado.
   const [email, setEmail] = useState('');
-  
-  // Guarda a senha digitada.
   const [senha, setSenha] = useState('');
-  
-  // Guarda o telefone.
   const [telefone, setTelefone] = useState('');
-  
-  // Guarda a data. Por enquanto é texto livre.
   const [dataNascimento , setDataNascimento] = useState('');
-  
-  // Guarda o Gênero. Começa com 0 (Masculino) pois é um número (Enum do C#).
-  const [genero, setGenero] = useState(0);
-  
-  // Guarda a URL ou Base64 da imagem (vazio por padrão).
-  const [imagemPerfil, setImagemPerfil] = useState('');
-  
-  // Guarda o ID da Steam (vazio por padrão).
+  const [genero, setGenero] = useState(0); 
   const [steamId, setSteamId] = useState('');
+  const [imagemPerfil, setImagemPerfil] = useState('');
 
-  // Função assíncrona (async) porque vai conversar com a Internet (Backend), o que demora.
   async function handleCadastro() {
-    
-    // --- VALIDAÇÃO ---
-    // Verifica se algum campo obrigatório está vazio. O !nome verifica se é null, undefined ou "".
-    if (!nome || !email || !senha || !dataNascimento || genero === undefined || genero === null) {
-      // Mostra um alerta nativo do celular (Título, Mensagem).
-      Alert.alert("Erro", "Preencha os campos obrigatórios (*)");
-      // O 'return' para a função aqui. Nada abaixo é executado.
+     if (!nome.trim() || !email.trim() || !senha.trim() || !dataNascimento.trim()) {
+      Alert.alert("Campos Obrigatórios", "Por favor, preencha Nome, E-mail, Senha e Data de Nascimento.");
       return;
     }
 
+    setLoading(true);
+
     try {
-      // --- MONTAGEM DO DTO ---
-      // Criamos o objeto Javascript que será enviado.
-      // A tipagem ': UsuarioCreateDTO' garante que não esquecemos campos ou erramos tipos.
-      const usuarioDTO: UsuarioCreateDTO = {
-        nome: nome,              // Chave (DTO): Valor (Estado)
-        email: email,
-        senha: senha,            // Mapeia o estado 'senha' para o campo 'senha' do DTO
-        dataNascimento: dataNascimento,
+      const usuarioDTO = {
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        senha: senha.trim(),
+        dataNascimento: dataNascimento, 
         genero: genero,
         telefone: telefone,
         imagemPerfil: imagemPerfil,
         steamId: steamId
       };
 
-      // --- ENVIO PARA O BACKEND ---
-      // Chama o método POST na rota '/Usuario'.
-      // O 'await' diz: "Espere o backend responder antes de continuar".
-      await api.post('/Usuario', usuarioDTO); 
+      await api.post('/api/Usuario', usuarioDTO); 
       
-      // Se chegou aqui, o backend retornou sucesso (200 ou 201).
-      Alert.alert("Sucesso", "Conta criada!");
-      
-      // Manda o usuário de volta para a tela anterior (Login).
+      Alert.alert("Sucesso!", "Sua conta foi criada. Faça login para continuar.");
       router.back(); 
 
-    } catch (error) {
-      // Se o backend der erro (400, 500) ou a internet cair, cai aqui.
-      console.error(error); // Mostra o erro detalhado no terminal.
-      Alert.alert("Erro", "Falha ao criar conta.");
+    } catch (error: any) {
+      console.error(error);
+      const msg = error.response?.data ? String(error.response.data) : "Falha ao criar conta. Verifique os dados.";
+      Alert.alert("Erro", msg);
+    } finally {
+        setLoading(false);
     }
   }
 
-return (
-    // KeyboardAvoidingView: O componente mágico.
-    // behavior='padding': No iOS, ele adiciona um preenchimento embaixo para empurrar tudo pra cima.
-    // behavior='height': No Android, ele diminui a altura da tela.
-    // style={{ flex: 1 }}: Ocupa a tela inteira.
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={{ flex: 1 }}
+  const GenderButton = ({ label, value }: { label: string, value: number }) => (
+    <TouchableOpacity 
+        style={[styles.genderBtn, genero === value && styles.genderBtnSelected]}
+        onPress={() => setGenero(value)}
     >
-      
-      {/* ScrollView: Permite rolar a tela se o conteúdo for grande. */}
-      {/* contentContainerStyle: Estilo do "miolo" da rolagem (paddings internos). */}
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        
-        {/* Título da página */}
-        <Text style={styles.title}>Crie sua conta</Text>
+        <Text style={[styles.genderText, genero === value && styles.genderTextSelected]}>
+            {label}
+        </Text>
+    </TouchableOpacity>
+  );
 
-        {/* --- CAMPO NOME --- */}
-        <Text style={styles.label}>Nome Completo *</Text>
-        <TextInput 
-            style={styles.input}      // Estilo da caixinha (bordas, cor)
-            placeholder="Seu nome"    // Texto cinza de dica
-            value={nome}              // O valor que aparece é o do Estado
-            onChangeText={setNome}    // Ao digitar, atualiza o Estado
-        />
-        
-        {/* --- CAMPO DATA --- */}
-        <Text style={styles.label}>Data de Nascimento *</Text>
-        <TextInput
-            style={styles.input}
-            placeholder='YYYY-MM-DD'
-            value={dataNascimento}
-            onChangeText={setDataNascimento}
-        />
+  return (
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+      style={styles.container}
+    >
+      <ScrollView 
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]} 
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.card}>
+            <Text style={styles.title}>Crie sua conta</Text>
+            <Text style={styles.subtitle}>Preencha os dados para começar sua coleção</Text>
 
-        {/* --- SELEÇÃO DE GÊNERO (BOTÕES) --- */}
-        <Text style={styles.label}>Gênero *</Text>
-        
-        {/* Botão Masculino */}
-        <TouchableOpacity
-            // Estilo dinâmico: Se genero for 0, fundo verde ('lime'). Se não, transparente.
-            style={{backgroundColor: genero === 0 ? 'lime' : 'transparent'}}
-            // Ao clicar, chama setGenero(0). O componente redesenha e aplica o estilo acima.
-            onPress={() => setGenero(0)}
-        >
-            <Text>Masculino</Text>
-        </TouchableOpacity>
+            <Text style={styles.sectionLabel}>Dados Pessoais</Text>
+            <TextInput 
+                style={styles.input}
+                placeholder="Nome Completo *"
+                placeholderTextColor="#999"
+                value={nome}
+                onChangeText={setNome}
+            />
+            <View style={styles.row}>
+                <TextInput
+                    style={[styles.input, { flex: 1, marginRight: 10 }]}
+                    placeholder='Nascimento *'
+                    placeholderTextColor="#999"
+                    value={dataNascimento}
+                    onChangeText={setDataNascimento}
+                    keyboardType="numbers-and-punctuation"
+                    maxLength={10}
+                />
+                <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder='Celular'
+                    placeholderTextColor="#999"
+                    value={telefone}
+                    onChangeText={setTelefone}
+                    keyboardType="phone-pad"
+                />
+            </View>
 
-        {/* Botão Feminino */}
-        <TouchableOpacity
-            // Estilo dinâmico: Se genero for 1, fundo verde ('lime'). Se não, transparente.
-            style={{backgroundColor: genero === 1 ? 'lime' : 'transparent'}}
-            // Ao clicar, chama setGenero(1). O componente redesenha e aplica o estilo acima.
-            onPress={() => setGenero(1)}
-        >
-            <Text>Feminino</Text>
-        </TouchableOpacity>
+            <Text style={styles.label}>Gênero *</Text>
+            <View style={styles.genderContainer}>
+                <GenderButton label="Masculino" value={0} />
+                <GenderButton label="Feminino" value={1} />
+                <GenderButton label="Outro" value={2} />
+            </View>
 
-        {/* Botão Outro */}
-        <TouchableOpacity
-            // Estilo dinâmico: Se genero for 2, fundo verde ('lime'). Se não, transparente.
-            style={{backgroundColor: genero === 2 ? 'lime' : 'transparent'}}
-            // Ao clicar, chama setGenero(2). O componente redesenha e aplica o estilo acima.
-            onPress={() => setGenero(2)}
-        >
-            <Text>Outro</Text>
-        </TouchableOpacity>
+            <Text style={styles.sectionLabel}>Acesso</Text>
+            <TextInput 
+                style={styles.input} 
+                placeholder="E-mail *"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+            />
+            <TextInput 
+                style={styles.input} 
+                placeholder="Senha *"
+                placeholderTextColor="#999"
+                secureTextEntry={true}
+                value={senha}
+                onChangeText={setSenha}
+            />
 
-        {/* Botão Prefiro não dizer */}
-        <TouchableOpacity
-            // Estilo dinâmico: Se genero for 3, fundo verde ('lime'). Se não, transparente.
-            style={{backgroundColor: genero === 3 ? 'lime' : 'transparent'}}
-            // Ao clicar, chama setGenero(3). O componente redesenha e aplica o estilo acima.
-            onPress={() => setGenero(3)}
-        >
-            <Text>Prefiro não dizer</Text>
-        </TouchableOpacity>
+            <Text style={styles.sectionLabel}>Extras (Opcional)</Text>
+            <TextInput
+                style={styles.input}
+                placeholder='Steam ID'
+                placeholderTextColor="#999"
+                value={steamId}
+                onChangeText={setSteamId}
+            />
 
-        {/* --- CAMPO EMAIL --- */}
-        <Text style={styles.label}>E-mail *</Text>
-        <TextInput 
-            style={styles.input} 
-            placeholder="exemplo@email.com"
-            keyboardType="email-address" // Muda o teclado (coloca @ visível)
-            autoCapitalize="none"        // Não deixa a primeira letra maiúscula
-            value={email}
-            onChangeText={setEmail}
-        />
+            <TouchableOpacity 
+                style={styles.button} 
+                onPress={handleCadastro}
+                disabled={loading}
+            >
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>CRIAR CONTA</Text>}
+            </TouchableOpacity>
 
-        {/* --- CAMPO SENHA --- */}
-        <Text style={styles.label}>Senha *</Text>
-        <TextInput 
-            style={styles.input} 
-            placeholder="******"
-            secureTextEntry={true} // Protege visualização de senha
-            value={senha}
-            onChangeText={setSenha}
-        />
+            <TouchableOpacity style={styles.linkButton} onPress={() => router.back()}>
+                <Text style={styles.linkText}>Já tem uma conta? <Text style={{fontWeight: 'bold'}}>Fazer Login</Text></Text>
+            </TouchableOpacity>
 
-        {/* --- CAMPOS OPCIONAIS --- */}
-        <Text style={styles.label}>Telefone</Text>
-        <TextInput
-            style={styles.input}
-            placeholder='+5511999999999'
-            value={telefone}
-            onChangeText={setTelefone}
-        />
-
-        <Text style={styles.label}>Steam ID</Text>
-        <TextInput
-            style={styles.input}
-            value={steamId}
-            onChangeText={setSteamId}
-        />
-
-        {/* --- BOTÃO DE AÇÃO PRINCIPAL --- */}
-        <TouchableOpacity style={styles.button} onPress={handleCadastro}>
-          <Text style={styles.buttonText}>CRIAR CONTA</Text>
-        </TouchableOpacity>
-
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: { padding: 24, paddingBottom: 50, backgroundColor: '#f5f5f5' },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 24, color: '#333', textAlign: 'center' },
-  label: { fontSize: 16, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 12 },
+  container: { flex: 1, backgroundColor: '#f5f5f5', paddingBottom: 50 },
+  scrollContent: { padding: 20, paddingTop: 40, alignItems: 'center' },
+  
+  card: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 }
+  },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 5 },
+  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 25 },
+  sectionLabel: { fontSize: 12, fontWeight: 'bold', color: '#aaa', textTransform: 'uppercase', marginBottom: 10, marginTop: 10, letterSpacing: 1 },
+  label: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 8 },
   input: { 
-    backgroundColor: '#fff', 
+    backgroundColor: '#f9f9f9', 
+    borderWidth: 1, 
+    borderColor: '#eee', 
+    borderRadius: 8, 
+    padding: 14, 
+    fontSize: 16,
+    marginBottom: 12,
+    color: '#333'
+  },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  genderContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, gap: 8 },
+  genderBtn: { 
+    flex: 1, 
     borderWidth: 1, 
     borderColor: '#ddd', 
     borderRadius: 8, 
-    padding: 12, 
-    fontSize: 16 
+    paddingVertical: 10, 
+    alignItems: 'center',
+    backgroundColor: '#fff'
   },
+  genderBtnSelected: { backgroundColor: '#6200ee', borderColor: '#6200ee' },
+  genderText: { fontSize: 13, color: '#555' },
+  genderTextSelected: { color: '#fff', fontWeight: 'bold' },
   button: { 
     backgroundColor: '#6200ee', 
     padding: 16, 
     borderRadius: 8, 
-    marginTop: 30, 
-    alignItems: 'center' 
+    marginTop: 20, 
+    alignItems: 'center',
+    elevation: 2
   },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  genreContainer: {
-    flexDirection: 'row', // Itens lado a lado
-    justifyContent: 'space-between', // Espalha eles igualmente
-    marginBottom: 10,
-  },
-  genreButton: {
-    flex: 1, // Cada botão tenta ocupar o mesmo espaço
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginHorizontal: 4, // Espacinho entre eles
-    alignItems: 'center',
-  },
-  genreButtonSelected: {
-    backgroundColor: '#6200ee', // Cor de destaque quando selecionado
-    borderColor: '#6200ee',
-  },
-  genreText: {
-    color: '#333',
-  },
-  genreTextSelected: {
-    color: '#fff', // Texto branco no fundo roxo
-    fontWeight: 'bold',
-  }
+  linkButton: { marginTop: 20, padding: 10, alignItems: 'center' },
+  linkText: { color: '#6200ee', fontSize: 14 }
 });

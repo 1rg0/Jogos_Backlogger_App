@@ -1,23 +1,27 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Tabs } from "expo-router";
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function TabsLayout() {
-  return(
-    <>
-      <Tabs screenOptions={{tabBarActiveTintColor:"lime"}}>
-        <Tabs.Screen 
+export default function TabLayout() {
+  return (
+    <Tabs screenOptions={{ tabBarActiveTintColor: '#6200ee', headerShown: false }}>
+      
+      {/* Aba Home */}
+      <Tabs.Screen 
         name="home" 
         options={{
-          title:"Home", 
-          tabBarIcon: ({color, focused}) =>{
-            return focused ?(
-              <MaterialCommunityIcons name="home-circle-outline" size={24} color={color} />
-            ) : (
-              <MaterialCommunityIcons name="home-circle" size={24} color={color} />
-            );
-          },
-        }}></Tabs.Screen>
-      </Tabs>
-    </> 
+          title: 'Início',
+          tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
+        }} 
+      />
+
+      {/* Aba Perfil */}
+      <Tabs.Screen 
+        name="perfil" 
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
+        }} 
+      /> 
+    </Tabs>
   );
 }

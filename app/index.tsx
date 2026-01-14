@@ -1,7 +1,7 @@
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Text, TouchableOpacity, View, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
-import api from '../../src/services/api'; 
+import api from '../src/services/api'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
@@ -29,7 +29,7 @@ export default function LoginScreen() {
             const usuario = response.data;
             
             await AsyncStorage.setItem('usuario_logado', JSON.stringify(usuario));
-            router.replace('/home');
+            router.replace('/(tabs)/home');
 
         } catch (error: any) {
             console.error("Erro no Login:", error);

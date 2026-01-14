@@ -117,7 +117,7 @@ export default function ExplorarScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20, paddingTop: 50 },
+  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20, paddingTop: 50, paddingBottom: 50 },
   header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' },
   searchContainer: { marginBottom: 20 },
   input: { 
