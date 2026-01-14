@@ -13,6 +13,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; 
+import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../src/services/api';
 
 export default function CadastroScreen() {
@@ -24,13 +25,35 @@ export default function CadastroScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [dataNascimento , setDataNascimento] = useState('');
+  const [dataNascimento, setDataNascimento] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [genero, setGenero] = useState(0); 
   const [steamId, setSteamId] = useState('');
   const [imagemPerfil, setImagemPerfil] = useState('');
 
+  const formatarDataVisual = (date: Date) => {
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  };
+
+  const formatarDataBackend = (date: Date) => {
+    const ano = date.getFullYear();
+    const mes = (date.getMonth() + 1).toString().padStart(2, '0');
+    const dia = date.getDate().toString().padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
+
+  const onChangeDate = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || dataNascimento;
+    setShowDatePicker(Platform.OS === 'ios');
+    setDataNascimento(currentDate);
+    
+    if (Platform.OS === 'android') {
+        setShowDatePicker(false);
+    }
+  };
+
   async function handleCadastro() {
-     if (!nome.trim() || !email.trim() || !senha.trim() || !dataNascimento.trim()) {
+     if (!nome.trim() || !email.trim() || !senha.trim()) {
       Alert.alert("Campos Obrigatórios", "Por favor, preencha Nome, E-mail, Senha e Data de Nascimento.");
       return;
     }
@@ -38,11 +61,13 @@ export default function CadastroScreen() {
     setLoading(true);
 
     try {
+      const dataFormatada = formatarDataBackend(dataNascimento);
+
       const usuarioDTO = {
         nome: nome.trim(),
         email: email.trim().toLowerCase(),
         senha: senha.trim(),
-        dataNascimento: dataNascimento, 
+        dataNascimento: dataFormatada, 
         genero: genero,
         telefone: telefone,
         imagemPerfil: imagemPerfil,
@@ -95,16 +120,30 @@ export default function CadastroScreen() {
                 value={nome}
                 onChangeText={setNome}
             />
+            
             <View style={styles.row}>
-                <TextInput
-                    style={[styles.input, { flex: 1, marginRight: 10 }]}
-                    placeholder='Nascimento *'
-                    placeholderTextColor="#999"
-                    value={dataNascimento}
-                    onChangeText={setDataNascimento}
-                    keyboardType="numbers-and-punctuation"
-                    maxLength={10}
-                />
+                <View style={{ flex: 1, marginRight: 10 }}>
+                    <TouchableOpacity 
+                        style={styles.input} 
+                        onPress={() => setShowDatePicker(true)}
+                    >
+                        <Text style={{ color: '#333', fontSize: 16 }}>
+                            {formatarDataVisual(dataNascimento)}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {showDatePicker && (
+                        <DateTimePicker
+                            testID="dateTimePicker"
+                            value={dataNascimento}
+                            mode="date"
+                            display="default"
+                            onChange={onChangeDate}
+                            maximumDate={new Date()}
+                        />
+                    )}
+                </View>
+
                 <TextInput
                     style={[styles.input, { flex: 1 }]}
                     placeholder='Celular'
@@ -169,7 +208,7 @@ export default function CadastroScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', paddingBottom: 50 },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
   scrollContent: { padding: 20, paddingTop: 40, alignItems: 'center' },
   
   card: {
@@ -187,6 +226,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 25 },
   sectionLabel: { fontSize: 12, fontWeight: 'bold', color: '#aaa', textTransform: 'uppercase', marginBottom: 10, marginTop: 10, letterSpacing: 1 },
   label: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 8 },
+  
   input: { 
     backgroundColor: '#f9f9f9', 
     borderWidth: 1, 
@@ -195,8 +235,10 @@ const styles = StyleSheet.create({
     padding: 14, 
     fontSize: 16,
     marginBottom: 12,
-    color: '#333'
+    color: '#333',
+    justifyContent: 'center' 
   },
+  
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   genderContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, gap: 8 },
   genderBtn: { 
