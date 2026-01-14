@@ -4,8 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 export default function TabLayout() {
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: '#6200ee', headerShown: false }}>
-      
-      {/* Aba Home */}
       <Tabs.Screen 
         name="home" 
         options={{
@@ -13,8 +11,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
         }} 
       />
-
-      {/* Aba Perfil */}
       <Tabs.Screen 
         name="perfil" 
         options={{

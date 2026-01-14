@@ -3,20 +3,17 @@ import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, ActivityIn
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import api from '../../src/services/api';
 
-// Interface que espelha a estrutura que vem do Backend (ItemBacklog + Jogo dentro)
 interface ItemDetalhe {
   id: number;
   jogoId: number;
   usuarioId: number;
   ordemId: number;
   
-  // Status editáveis
   finalizado: boolean;
   rejogando: boolean;
   horasJogadas: number;
   vezesFinalizado: number;
 
-  // Dados do Jogo (Aninhados/Nested)
   jogo: {
     id: number;
     titulo: string;
@@ -24,19 +21,18 @@ interface ItemDetalhe {
     sinopse: string;
     desenvolvedora: string;
     horasParaZerar: number;
-    generos: string[]; // Supondo que o backend mande lista de strings
+    generos: string[];
   };
 }
 
 export default function ItemDetalhesScreen() {
-  const { id } = useLocalSearchParams(); // Pega o ID da URL
+  const { id } = useLocalSearchParams();
   const router = useRouter();
   
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [item, setItem] = useState<ItemDetalhe | null>(null);
 
-  // Estados locais para os inputs de texto (Edição)
   const [horasInput, setHorasInput] = useState('0');
   const [vezesInput, setVezesInput] = useState('0');
 
@@ -46,13 +42,11 @@ export default function ItemDetalhesScreen() {
 
   async function carregarDetalhes() {
     try {
-      // Busca o item pelo ID do Backlog
       const response = await api.get(`/api/ItemBacklog/${id}`);
       const dados: ItemDetalhe = response.data;
       
       setItem(dados);
       
-      // Preenche os inputs com os dados que vieram do banco
       setHorasInput(dados.horasJogadas.toString());
       setVezesInput(dados.vezesFinalizado.toString());
       
@@ -65,14 +59,12 @@ export default function ItemDetalhesScreen() {
     }
   }
 
-  // Função para salvar as alterações no Banco
   async function handleSalvar() {
     if (!item) return;
 
     try {
       setSalvando(true);
 
-      // Monta o objeto para o PUT
       const payload = {
         id: item.id,
         jogoId: item.jogoId,
@@ -80,7 +72,6 @@ export default function ItemDetalhesScreen() {
         ordemId: item.ordemId,
         finalizado: item.finalizado,
         rejogando: item.rejogando,
-        // Converte os textos dos inputs para números
         horasJogadas: parseFloat(horasInput) || 0,
         vezesFinalizado: parseInt(vezesInput) || 0
       };
@@ -88,7 +79,7 @@ export default function ItemDetalhesScreen() {
       await api.put(`/ItemBacklog/${item.id}`, payload);
       
       Alert.alert("Sucesso", "Dados atualizados!");
-      router.back(); // Volta para a Home atualizado
+      router.back();
     } catch (error) {
       console.error(error);
       Alert.alert("Erro", "Falha ao salvar alterações.");
@@ -97,16 +88,14 @@ export default function ItemDetalhesScreen() {
     }
   }
 
-  // Função para alternar os botões de status (Finalizado/Rejogando)
   function toggleStatus(tipo: 'finalizado' | 'rejogando') {
     if (!item) return;
 
-    const novoItem = { ...item }; // Cria cópia para não alterar estado direto
+    const novoItem = { ...item };
 
     if (tipo === 'finalizado') {
         novoItem.finalizado = !novoItem.finalizado;
         
-        // Regra de Negócio: Se marcou como finalizado, sugere aumentar o contador
         if (novoItem.finalizado) {
             const novasVezes = (parseInt(vezesInput) || 0) + 1;
             setVezesInput(novasVezes.toString());
@@ -115,7 +104,6 @@ export default function ItemDetalhesScreen() {
     } 
     else if (tipo === 'rejogando') {
         novoItem.rejogando = !novoItem.rejogando;
-        // Se começou a rejogar, desmarca finalizado? (Opcional, deixei comentado)
         // if (novoItem.rejogando) novoItem.finalizado = false;
     }
 
@@ -135,7 +123,6 @@ export default function ItemDetalhesScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       
-      {/* CABEÇALHO (Capa e Título) */}
       <View style={styles.header}>
         {item.jogo.icone ? (
              <Image source={{ uri: item.jogo.icone }} style={styles.capa} resizeMode='cover' />
@@ -145,7 +132,6 @@ export default function ItemDetalhesScreen() {
         <Text style={styles.titulo}>{item.jogo.titulo}</Text>
         <Text style={styles.dev}>{item.jogo.desenvolvedora}</Text>
         
-        {/* Chips de Gêneros (Se houver) */}
         <View style={styles.tagsContainer}>
             {item.jogo.generos && item.jogo.generos.map((g, i) => (
                 <View key={i} style={styles.tag}>
@@ -157,12 +143,10 @@ export default function ItemDetalhesScreen() {
 
       <View style={styles.divider} />
 
-      {/* CONTROLES DE STATUS */}
       <View style={styles.section}>
         <Text style={styles.labelSection}>Status Atual</Text>
         <View style={styles.row}>
             
-            {/* Botão Finalizado */}
             <TouchableOpacity 
                 style={[styles.btnStatus, item.finalizado ? styles.btnSuccess : styles.btnOutline]}
                 onPress={() => toggleStatus('finalizado')}
@@ -172,7 +156,6 @@ export default function ItemDetalhesScreen() {
                 </Text>
             </TouchableOpacity>
 
-            {/* Botão Rejogando */}
             <TouchableOpacity 
                 style={[styles.btnStatus, item.rejogando ? styles.btnInfo : styles.btnOutline]}
                 onPress={() => toggleStatus('rejogando')}
@@ -184,7 +167,6 @@ export default function ItemDetalhesScreen() {
         </View>
       </View>
 
-      {/* INPUTS DE PROGRESSO */}
       <View style={styles.section}>
         <Text style={styles.labelSection}>Meu Progresso</Text>
         
@@ -212,13 +194,11 @@ export default function ItemDetalhesScreen() {
         <Text style={styles.hint}>Tempo estimado para zerar: {item.jogo.horasParaZerar}h</Text>
       </View>
 
-      {/* SINOPSE */}
       <View style={styles.section}>
         <Text style={styles.labelSection}>Sinopse</Text>
         <Text style={styles.sinopseText}>{item.jogo.sinopse || "Sem sinopse disponível."}</Text>
       </View>
 
-      {/* BOTÃO SALVAR */}
       <TouchableOpacity 
         style={styles.btnSalvar} 
         onPress={handleSalvar}

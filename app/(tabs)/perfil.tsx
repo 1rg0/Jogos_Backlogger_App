@@ -1,24 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import api from '../../src/services/api';
+import { UsuarioDetailDTO } from '../../src/types/UsuarioDTO';
 
 export default function PerfilScreen() {
   const router = useRouter();
-  const [usuario, setUsuario] = useState<any>(null);
+  
+  const [loading, setLoading] = useState(true);
+  const [usuario, setUsuario] = useState<UsuarioDetailDTO | null>(null);
 
-  useEffect(() => {
-    carregarUsuario();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarPerfilCompleto();
+    }, [])
+  );
 
-  async function carregarUsuario() {
+  async function carregarPerfilCompleto() {
     try {
+      setLoading(true);
       const jsonValue = await AsyncStorage.getItem('usuario_logado');
+      
       if (jsonValue != null) {
-        setUsuario(JSON.parse(jsonValue));
+        const usuarioLogado = JSON.parse(jsonValue);
+
+        const response = await api.get(`/api/Usuario/${usuarioLogado.id}`);
+        
+        setUsuario(response.data);
       }
     } catch (e) {
-      console.error(e);
+      console.error("Erro ao carregar perfil:", e);
+      Alert.alert("Erro", "Não foi possível carregar os dados do perfil.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -40,66 +55,101 @@ export default function PerfilScreen() {
     );
   }
 
+  const getGeneroTexto = (g: number) => {
+    switch(g) {
+        case 0: return 'Masculino';
+        case 1: return 'Feminino';
+        case 2: return 'Outro';
+        case 3: return 'Prefiro não dizer';
+        default: return 'Não informado';
+    }
+  };
+
+  const formatarData = (dataString: string) => {
+    if(!dataString) return '-';
+    const partes = dataString.split('T')[0].split('-');
+    if(partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+    return dataString;
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, {justifyContent: 'center'}]}>
+        <ActivityIndicator size="large" color="#6200ee" />
+      </View>
+    );
+  }
+
   if (!usuario) {
     return (
-      <View style={styles.container}>
-        <Text>Carregando perfil...</Text>
+      <View style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
+        <Text>Não foi possível carregar o usuário.</Text>
+        <TouchableOpacity onPress={handleLogout} style={styles.btnLogout}>
+            <Text style={styles.btnLogoutText}>Voltar ao Login</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      
-      {/* CABEÇALHO DO PERFIL */}
+    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 40}}>
+
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
-            {/* Placeholder de Avatar (Letra Inicial) */}
             <Text style={styles.avatarText}>
                 {usuario.nome ? usuario.nome.charAt(0).toUpperCase() : 'U'}
             </Text>
         </View>
         <Text style={styles.nome}>{usuario.nome}</Text>
         <Text style={styles.email}>{usuario.email}</Text>
+
+        <View style={[styles.badge, { backgroundColor: usuario.ativo ? '#e8f5e9' : '#ffebee' }]}>
+            <Text style={{ color: usuario.ativo ? '#2e7d32' : '#c62828', fontSize: 12, fontWeight: 'bold' }}>
+                {usuario.ativo ? 'CONTA ATIVA' : 'INATIVA'}
+            </Text>
+        </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Minha Conta</Text>
+        <Text style={styles.sectionTitle}>Dados Pessoais</Text>
         
-        <View style={styles.infoRow}>
-            <Text style={styles.label}>ID de Usuário:</Text>
-            <Text style={styles.value}>#{usuario.id}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
-            <Text style={styles.label}>Gênero:</Text>
-            <Text style={styles.value}>
-                {usuario.genero === 0 ? 'Masculino' : usuario.genero === 1 ? 'Feminino' : 'Outro'}
-            </Text>
-        </View>
-
-        {usuario.steamId ? (
-             <View style={styles.infoRow}>
-                <Text style={styles.label}>Steam ID:</Text>
-                <Text style={styles.value}>{usuario.steamId}</Text>
-            </View>
-        ) : null}
+        <InfoRow label="ID de Usuário" value={`#${usuario.id}`} />
+        <InfoRow label="Nascimento" value={formatarData(usuario.dataNascimento)} />
+        <InfoRow label="Gênero" value={getGeneroTexto(usuario.genero)} />
+        <InfoRow label="Celular" value={usuario.telefone || "Não cadastrado"} />
       </View>
 
-      {/* BOTÃO SAIR */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Integrações</Text>
+        
+        <InfoRow label="Steam ID" value={usuario.steamId || "Não vinculado"} />
+        {usuario.steamIntegradoEm && (
+             <InfoRow label="Sincronizado em" value={formatarData(usuario.steamIntegradoEm)} />
+        )}
+      </View>
+
       <TouchableOpacity style={styles.btnLogout} onPress={handleLogout}>
         <Text style={styles.btnLogoutText}>SAIR DO APP</Text>
       </TouchableOpacity>
 
       <Text style={styles.version}>Versão 1.0.0</Text>
-    </View>
+    </ScrollView>
   );
 }
+
+const InfoRow = ({ label, value }: { label: string, value: string }) => (
+    <View style={styles.infoRow}>
+        <Text style={styles.label}>{label}:</Text>
+        <Text style={styles.value}>{value}</Text>
+    </View>
+);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20 },
   
-  header: { alignItems: 'center', marginTop: 40, marginBottom: 30 },
+  header: { alignItems: 'center', marginTop: 20, marginBottom: 30 },
   avatarContainer: { 
     width: 100, 
     height: 100, 
@@ -108,21 +158,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center',
     marginBottom: 15,
-    elevation: 5
+    elevation: 5,
+    shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.2
   },
   avatarText: { fontSize: 40, color: '#fff', fontWeight: 'bold' },
   nome: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  email: { fontSize: 16, color: '#666', marginTop: 5 },
-
-  section: { backgroundColor: '#fff', borderRadius: 10, padding: 20, marginBottom: 20, elevation: 2 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#333', borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 },
+  email: { fontSize: 16, color: '#666', marginTop: 4 },
   
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  label: { color: '#666', fontSize: 16 },
-  value: { color: '#333', fontSize: 16, fontWeight: '500' },
+  badge: { marginTop: 10, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
 
-  btnLogout: { backgroundColor: '#d32f2f', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  btnLogoutText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  section: { backgroundColor: '#fff', borderRadius: 12, padding: 20, marginBottom: 20, elevation: 2 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#333', borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingBottom: 10 },
+  
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f9f9f9', paddingBottom: 4 },
+  label: { color: '#666', fontSize: 15 },
+  value: { color: '#333', fontSize: 15, fontWeight: '500' },
 
-  version: { textAlign: 'center', color: '#999', marginTop: 30, fontSize: 12 }
+  btnLogout: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#d32f2f', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  btnLogoutText: { color: '#d32f2f', fontWeight: 'bold', fontSize: 16 },
+
+  version: { textAlign: 'center', color: '#ccc', marginTop: 30, fontSize: 12 }
 });
