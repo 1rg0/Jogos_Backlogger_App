@@ -100,6 +100,12 @@ export default function CadastroScreen() {
   );
 
   return (
+    <View style={{ 
+        flex: 1, 
+        backgroundColor: '#f9f9f9', 
+        paddingBottom: insets.bottom,
+        paddingTop: insets.top
+    }}>
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
       style={styles.container}
@@ -204,6 +210,7 @@ export default function CadastroScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </View>
   );
 }
 

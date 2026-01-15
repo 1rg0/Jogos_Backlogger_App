@@ -1,14 +1,38 @@
-import { Link, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Text, TouchableOpacity, View, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
-import api from '../src/services/api'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Checkbox from 'expo-checkbox';
+import { Link, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import api from '../src/services/api';
 
 export default function LoginScreen() {
     const router = useRouter();
+
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const [loadingAutoLogin, setLoadingAutoLogin] = useState(true);
+    const [manterConectado, setManterConectado] = useState(false);
+
+    useEffect(() => {
+        verificarLoginAutomatico();
+    }, []);
+
+    async function verificarLoginAutomatico() {
+        try {
+            const usuarioJson = await AsyncStorage.getItem('usuario_logado');
+            const deveManterConectado = await AsyncStorage.getItem('manter_conectado');
+
+            if (usuarioJson && deveManterConectado === 'true') {
+                router.replace('/(tabs)/home');
+            }
+        } catch (e) {
+            console.error("Erro ao verificar login:", e);
+        } finally {
+            setLoadingAutoLogin(false);
+        }
+    }
 
     async function handleLogin() {
         if (!email.trim() || !senha.trim()) {
@@ -29,6 +53,13 @@ export default function LoginScreen() {
             const usuario = response.data;
             
             await AsyncStorage.setItem('usuario_logado', JSON.stringify(usuario));
+
+            if (manterConectado) {
+                await AsyncStorage.setItem('manter_conectado', 'true');
+            } else {
+                await AsyncStorage.removeItem('manter_conectado');
+            }
+
             router.replace('/(tabs)/home');
 
         } catch (error: any) {
@@ -48,6 +79,14 @@ export default function LoginScreen() {
         } finally {
             setLoading(false);
         }
+    }
+
+    if (loadingAutoLogin) {
+        return (
+            <View style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
+                <ActivityIndicator size="large" color="#6200ee" />
+            </View>
+        );
     }
 
     return (
@@ -77,6 +116,18 @@ export default function LoginScreen() {
                     value={senha}
                     onChangeText={setSenha}
                 />
+
+                <View style={styles.checkboxContainer}>
+                    <Checkbox
+                        style={styles.checkbox}
+                        value={manterConectado}
+                        onValueChange={setManterConectado}
+                        color={manterConectado ? '#6200ee' : undefined}
+                    />
+                    <TouchableOpacity onPress={() => setManterConectado(!manterConectado)}>
+                        <Text style={styles.checkboxLabel}>Manter conectado</Text>
+                    </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity 
                     style={styles.button} 
@@ -114,6 +165,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginBottom: 16,
         color: '#333'
+    },
+    checkboxContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    checkbox: {
+        marginRight: 10,
+        borderRadius: 4,
+    },
+    checkboxLabel: {
+        fontSize: 14,
+        color: '#555',
     },
     button: { 
         backgroundColor: '#6200ee', 
