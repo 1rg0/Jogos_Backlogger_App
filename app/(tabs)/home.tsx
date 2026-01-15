@@ -1,15 +1,18 @@
-import React, { useState, useCallback } from 'react'; 
-import { View, Text, StyleSheet, FlatList, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../src/services/api';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import api, { API_URL } from '../../src/services/api';
 import { ItemBacklog } from '../../src/types/ItemBacklog';
+import { UsuarioDetailDTO } from '../../src/types/UsuarioDTO';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [itens, setItens] = useState<ItemBacklog[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const [nomeUsuario, setNomeUsuario] = useState('');
+  const [fotoPerfil, setFotoPerfil] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -19,16 +22,28 @@ export default function HomeScreen() {
 
   async function carregarDados() {
     try {
-      setLoading(true); 
+      // setLoading(true);
       
       const jsonValue = await AsyncStorage.getItem('usuario_logado');
       
       if (jsonValue != null) {
-        const usuario = JSON.parse(jsonValue);
-        setNomeUsuario(usuario.nome);
+        const usuarioLogado = JSON.parse(jsonValue);
         
-        const response = await api.get(`/api/ItemBacklog?usuarioId=${usuario.id}`);
-        setItens(response.data);
+        const [userResponse, itensResponse] = await Promise.all([
+            api.get<UsuarioDetailDTO>(`/api/Usuario/${usuarioLogado.id}`),
+            api.get<ItemBacklog[]>(`/api/ItemBacklog?usuarioId=${usuarioLogado.id}`)
+        ]);
+
+        const usuarioAtualizado = userResponse.data;
+        const listaItens = itensResponse.data;
+
+
+        setNomeUsuario(usuarioAtualizado.nome.split(' ')[0]);
+        setFotoPerfil(usuarioAtualizado.imagemPerfil || '');
+
+        setItens(listaItens);
+        
+        await AsyncStorage.setItem('usuario_logado', JSON.stringify(usuarioAtualizado));
       }
     } catch (e) {
       console.error("Erro ao carregar home:", e);
@@ -64,7 +79,15 @@ export default function HomeScreen() {
                 
                 <TouchableOpacity onPress={() => router.push('/perfil')}>
                     <View style={styles.profileButton}>
-                        <Text style={{fontSize: 20}}>👤</Text>
+                        {fotoPerfil ? (
+                            <Image 
+                                source={{ uri: `${API_URL}${fotoPerfil}?t=${new Date().getTime()}` }} 
+                                style={styles.profileImage}
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <Text style={{fontSize: 20}}>👤</Text>
+                        )}
                     </View>
                 </TouchableOpacity>
             </View>
@@ -154,9 +177,9 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 10, marginBottom: 10, color: '#333' },
   emptyText: { color: '#999', fontStyle: 'italic', marginTop: 10, textAlign: 'center' },
   
-  cardDestaque: { width: 140, height: 190, backgroundColor: '#fff', marginRight: 12, borderRadius: 10, padding: 10, elevation: 2 },
-  capaDestaque: { width: 100, height: 120, borderRadius: 8, marginBottom: 10, alignSelf: 'center' },
-  tituloDestaque: { fontWeight: 'bold', fontSize: 13, textAlign: 'center', color: '#333' },
+  cardDestaque: { width: 95, height: 135, backgroundColor: '#fff', marginRight: 12, borderRadius: 10, padding: 10, elevation: 2 },
+  capaDestaque: { width: 80, height: 80, borderRadius: 8, marginBottom: 10, alignSelf: 'center' },
+  tituloDestaque: { fontWeight: 'bold', fontSize: 11, textAlign: 'center', color: '#333' },
   
   cardFila: { backgroundColor: '#fff', padding: 10, marginBottom: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', elevation: 1 },
   capaPequena: { width: 50, height: 65, borderRadius: 6, marginRight: 15 },
@@ -182,7 +205,13 @@ const styles = StyleSheet.create({
     borderRadius: 25, 
     justifyContent: 'center', 
     alignItems: 'center',
-    elevation: 2
+    elevation: 2,
+    overflow: 'hidden'
+  },
+  profileImage: {
+    width: 45,
+    height: 45,
+    borderRadius: 25
   },
 
   btnExplorar: {

@@ -22,3 +22,10 @@ export interface UsuarioDetailDTO {
   steamId?: string;
   steamIntegradoEm?: string;
 }
+
+export interface UsuarioUpdateDTO {
+    nome: string;
+    telefone?: string;
+    imagemPerfil?: string;
+    steamId?: string;
+}
