@@ -11,6 +11,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
         }} 
       />
+      <Tabs.Screen
+        name="historico"
+        options={{
+          title: 'Histórico',
+          tabBarIcon: ({ color, size }) => <Ionicons name="trophy" size={size} color={color} />,
+        }}
+      />
       <Tabs.Screen 
         name="perfil" 
         options={{

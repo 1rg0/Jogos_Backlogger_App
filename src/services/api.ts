@@ -8,11 +8,10 @@ const api = axios.create({
 });
 /* TESTE DE ROTAS
 api.interceptors.request.use(request => {
-    // Se baseURL ou url forem undefined, usamos uma string vazia ''
     const baseURL = request.baseURL || '';
     const url = request.url || '';
     
-    console.log('>>> AXIOS REQUEST:', `${baseURL}${url}`);
+    console.log('AXIOS REQUEST:', `${baseURL}${url}`);
     return request;
 });*/
 
