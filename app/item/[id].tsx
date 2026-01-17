@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; 
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../src/services/api';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ItemDetalhe {
   id: number;
@@ -118,6 +119,12 @@ export default function ItemDetalhesScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
         >
+
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtnCircle}>
+                <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+        </View>
         
         <View style={styles.header}>
             {item.jogo.icone ? (
@@ -147,7 +154,7 @@ export default function ItemDetalhesScreen() {
                     onPress={() => toggleStatus('finalizado')}
                 >
                     <Text style={[styles.btnText, item.finalizado ? styles.textWhite : styles.textDark]}>
-                        {item.finalizado ? "🏆 Finalizado" : "Marcar Finalizado"}
+                        {item.finalizado ? "Finalizado" : "Marcar Finalizado"}
                     </Text>
                 </TouchableOpacity>
 
@@ -156,7 +163,7 @@ export default function ItemDetalhesScreen() {
                     onPress={() => toggleStatus('rejogando')}
                 >
                     <Text style={[styles.btnText, item.rejogando ? styles.textWhite : styles.textDark]}>
-                        {item.rejogando ? "🔄 Rejogando" : "Rejogar?"}
+                        {item.rejogando ? "Rejogando" : "Rejogar?"}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -209,6 +216,19 @@ export default function ItemDetalhesScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  topBar: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    alignItems: 'flex-start',
+  },
+  backBtnCircle: {
+    backgroundColor: '#f0f0f0',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: { alignItems: 'center', padding: 20, backgroundColor: '#fff' },
   capa: { width: 140, height: 200, borderRadius: 10, marginBottom: 15, elevation: 5 },
   titulo: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#333' },

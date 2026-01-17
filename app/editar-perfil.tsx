@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import api, { API_URL } from '../src/services/api';
 import { UsuarioDetailDTO, UsuarioUpdateDTO } from '../src/types/UsuarioDTO';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function EditarPerfilScreen() {
     const router = useRouter();
@@ -138,7 +139,15 @@ export default function EditarPerfilScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{flex: 1}}>
             <ScrollView contentContainerStyle={styles.container}>
                 
-                <Text style={styles.title}>Editar Perfil</Text>
+                <View style={styles.headerRow}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.btnBack}>
+                        <Ionicons name="arrow-back" size={24} color="#333" />
+                    </TouchableOpacity>
+                    
+                    <Text style={styles.headerTitle}>Editar Perfil</Text>
+                    
+                    <View style={{width: 24}} /> 
+                </View>
                 
                 <View style={styles.card}>
                     <View style={styles.imageContainer}>
@@ -202,9 +211,16 @@ export default function EditarPerfilScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flexGrow: 1, padding: 20, backgroundColor: '#f5f5f5', justifyContent: 'center' },
+    container: { flexGrow: 1, padding: 20, backgroundColor: '#f5f5f5', paddingTop: 50 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333', textAlign: 'center' },
+    headerRow: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: 20 
+    },
+    btnBack: { padding: 5 },
+    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
     card: { backgroundColor: '#fff', borderRadius: 12, padding: 20, elevation: 3, marginBottom: 20 },
     
     imageContainer: { alignItems: 'center', marginBottom: 20 },

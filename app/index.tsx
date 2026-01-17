@@ -2,18 +2,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
 import { Link, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity, View
+} from 'react-native';
 import api from '../src/services/api';
 
 export default function LoginScreen() {
     const router = useRouter();
-
+    
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [loading, setLoading] = useState(false);
-
-    const [loadingAutoLogin, setLoadingAutoLogin] = useState(true);
-    const [manterConectado, setManterConectado] = useState(false);
+    const [loadingAutoLogin, setLoadingAutoLogin] = useState(true); 
+    const [manterConectado, setManterConectado] = useState(false); 
 
     useEffect(() => {
         verificarLoginAutomatico();
@@ -25,7 +31,19 @@ export default function LoginScreen() {
             const deveManterConectado = await AsyncStorage.getItem('manter_conectado');
 
             if (usuarioJson && deveManterConectado === 'true') {
-                router.replace('/(tabs)/home');
+                const usuario = JSON.parse(usuarioJson);
+
+                try {
+                    await api.get(`/api/Usuario/${usuario.id}`);
+                    
+                    router.replace('/(tabs)/home');
+                    return;
+
+                } catch (error) {
+                    console.log("Usuário salvo não existe mais no banco.");
+
+                    await AsyncStorage.multiRemove(['usuario_logado', 'manter_conectado']);
+                }
             }
         } catch (e) {
             console.error("Erro ao verificar login:", e);
@@ -49,7 +67,6 @@ export default function LoginScreen() {
             };
 
             const response = await api.post('/api/Login/login', payload);
-
             const usuario = response.data;
             
             await AsyncStorage.setItem('usuario_logado', JSON.stringify(usuario));
@@ -64,17 +81,13 @@ export default function LoginScreen() {
 
         } catch (error: any) {
             console.error("Erro no Login:", error);
-            
             if (error.response) {
-                const mensagemErro = typeof error.response.data === 'string' 
+                const msg = typeof error.response.data === 'string' 
                     ? error.response.data 
                     : "E-mail ou senha incorretos.";
-                
-                Alert.alert("Erro de Login", mensagemErro);
-            } else if (error.request) {
-                Alert.alert("Erro de Conexão", "Não foi possível conectar ao servidor. Verifique sua internet.");
+                Alert.alert("Erro de Login", msg);
             } else {
-                Alert.alert("Erro", "Ocorreu um erro inesperado.");
+                Alert.alert("Erro", "Ocorreu um erro inesperado. Verifique sua conexão.");
             }
         } finally {
             setLoading(false);
@@ -183,7 +196,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#6200ee', 
         padding: 16, 
         borderRadius: 8, 
-        marginTop: 10, 
+        marginTop: 5, 
         alignItems: 'center' 
     },
     buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
