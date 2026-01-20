@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; 
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../src/services/api';
 
 export default function CadastroScreen() {
@@ -29,7 +30,6 @@ export default function CadastroScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [genero, setGenero] = useState(0); 
   const [steamId, setSteamId] = useState('');
-  const [imagemPerfil, setImagemPerfil] = useState('');
 
   const formatarDataVisual = (date: Date) => {
     return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
@@ -70,14 +70,25 @@ export default function CadastroScreen() {
         dataNascimento: dataFormatada, 
         genero: genero,
         telefone: telefone,
-        imagemPerfil: imagemPerfil,
+        imagemPerfil: '',
         steamId: steamId
       };
 
       await api.post('/api/Usuario', usuarioDTO); 
       
-      Alert.alert("Sucesso!", "Sua conta foi criada. Faça login para continuar.");
-      router.back(); 
+      const loginPayload = {
+          email: email.trim().toLowerCase(),
+          senha: senha.trim()
+      };
+
+      const loginResponse = await api.post('/api/Login/login', loginPayload);
+      const usuarioLogado = loginResponse.data;
+
+      await AsyncStorage.setItem('usuario_logado', JSON.stringify(usuarioLogado));
+
+      Alert.alert("Bem-vindo!", `Olá, ${nome.split(' ')[0]}! Sua conta foi criada com sucesso.`);
+      
+      router.replace('/(tabs)/home'); 
 
     } catch (error: any) {
       console.error(error);
@@ -186,7 +197,7 @@ export default function CadastroScreen() {
                 onChangeText={setSenha}
             />
 
-            <Text style={styles.sectionLabel}>Extras (Opcional)</Text>
+            <Text style={styles.sectionLabel}>Integração (Opcional)</Text>
             <TextInput
                 style={styles.input}
                 placeholder='Steam ID'

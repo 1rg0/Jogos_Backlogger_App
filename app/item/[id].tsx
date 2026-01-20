@@ -1,9 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../src/services/api';
-import { Ionicons } from '@expo/vector-icons';
 
 interface ItemDetalhe {
   id: number;
@@ -18,6 +18,7 @@ interface ItemDetalhe {
     id: number;
     titulo: string;
     icone: string;
+    imagem: string,
     sinopse: string;
     desenvolvedora: string;
     horasParaZerar: number;
@@ -54,6 +55,7 @@ export default function ItemDetalhesScreen() {
       router.back();
     } finally {
       setLoading(false);
+      
     }
   }
 
@@ -112,26 +114,34 @@ export default function ItemDetalhesScreen() {
     <View style={{ 
         flex: 1, 
         backgroundColor: '#f9f9f9', 
-        paddingBottom: insets.bottom,
-        paddingTop: insets.top
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom
     }}>
         <ScrollView 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
         >
-
           <View style={styles.topBar}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtnCircle}>
                 <Ionicons name="arrow-back" size={24} color="#333" />
             </TouchableOpacity>
-        </View>
+          </View>
         
-        <View style={styles.header}>
-            {item.jogo.icone ? (
-                <Image source={{ uri: item.jogo.icone }} style={styles.capa} resizeMode='cover' />
-            ) : (
-                <View style={[styles.capa, { backgroundColor: '#ccc' }]} />
-            )}
+          <View style={styles.header}>
+            <View style={styles.imageContainer}>
+                {item.jogo.imagem ? (
+                    <Image 
+                        source={{ uri: item.jogo.imagem }} 
+                        style={styles.capa} 
+                        resizeMode='contain'
+                    />
+                ) : (
+                    <View style={[styles.capa, { backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="image-outline" size={50} color="#fff" />
+                    </View>
+                )}
+            </View>
+
             <Text style={styles.titulo}>{item.jogo.titulo}</Text>
             <Text style={styles.dev}>{item.jogo.desenvolvedora}</Text>
             
@@ -142,11 +152,11 @@ export default function ItemDetalhesScreen() {
                     </View>
                 ))}
             </View>
-        </View>
+          </View>
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        <View style={styles.section}>
+          <View style={styles.section}>
             <Text style={styles.labelSection}>Status Atual</Text>
             <View style={styles.row}>
                 <TouchableOpacity 
@@ -167,9 +177,9 @@ export default function ItemDetalhesScreen() {
                     </Text>
                 </TouchableOpacity>
             </View>
-        </View>
+          </View>
 
-        <View style={styles.section}>
+          <View style={styles.section}>
             <Text style={styles.labelSection}>Meu Progresso</Text>
             <View style={styles.row}>
                 <View style={{flex: 1, marginRight: 10}}>
@@ -193,21 +203,21 @@ export default function ItemDetalhesScreen() {
                 </View>
             </View>
             <Text style={styles.hint}>Tempo estimado para zerar: {item.jogo.horasParaZerar}h</Text>
-        </View>
+          </View>
 
-        <View style={styles.section}>
+          <View style={styles.section}>
             <Text style={styles.labelSection}>Sinopse</Text>
             <Text style={styles.sinopseText}>{item.jogo.sinopse || "Sem sinopse disponível."}</Text>
-        </View>
+          </View>
 
-        <View style={{backgroundColor: '#fff'}}>
-          <TouchableOpacity 
-              style={styles.btnSalvar} 
-              onPress={handleSalvar}
-              disabled={salvando}
-          >
-              {salvando ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnSalvarText}>SALVAR ALTERAÇÕES</Text>}
-          </TouchableOpacity>
+          <View style={{backgroundColor: '#fff', paddingBottom: 20}}>
+            <TouchableOpacity 
+                style={styles.btnSalvar} 
+                onPress={handleSalvar}
+                disabled={salvando}
+            >
+                {salvando ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnSalvarText}>SALVAR ALTERAÇÕES</Text>}
+            </TouchableOpacity>
           </View>
         </ScrollView>
     </View>
@@ -218,26 +228,43 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   topBar: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingVertical: 10,
     alignItems: 'flex-start',
+    backgroundColor: '#f9f9f9',
   },
   backBtnCircle: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fff',
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
-  header: { alignItems: 'center', padding: 20, backgroundColor: '#fff' },
-  capa: { width: 140, height: 200, borderRadius: 10, marginBottom: 15, elevation: 5 },
+  header: { alignItems: 'center', paddingHorizontal: 20, paddingBottom: 20, backgroundColor: '#f9f9f9' },
+  
+  imageContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  capa: { 
+    width: '100%', 
+    height: 200,
+  },
+  
   titulo: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#333' },
   dev: { fontSize: 16, color: '#666', marginTop: 4 },
   tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 15, gap: 8 },
   tag: { backgroundColor: '#e0e0e0', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 15 },
   tagText: { fontSize: 12, color: '#333' },
-  divider: { height: 1, backgroundColor: '#eee'},
-  section: { padding: 20, paddingBottom: 5, backgroundColor: '#fff' },
+  divider: { height: 1, backgroundColor: '#eee', marginHorizontal: 20},
+  section: { padding: 20, paddingBottom: 5, backgroundColor: '#fff', marginHorizontal: 15, marginTop: 15, borderRadius: 10, elevation: 1 }, // Cards separados
   labelSection: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#333' },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   btnStatus: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', borderWidth: 1, justifyContent: 'center' },

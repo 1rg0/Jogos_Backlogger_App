@@ -145,7 +145,7 @@ export default function PerfilScreen() {
                     style={styles.btnEdit} 
                     onPress={() => router.push('/editar-perfil')}
                 >
-                    <Text style={styles.btnEditText}>✏️  Editar Dados</Text>
+                    <Text style={styles.btnEditText}>Editar Dados</Text>
                 </TouchableOpacity>
             </View>
 
@@ -153,13 +153,22 @@ export default function PerfilScreen() {
                 <Text style={styles.sectionTitle}>Segurança</Text>
                 
                 <TouchableOpacity style={styles.btnAction} onPress={() => setModalVisible(true)}>
-                    <Text style={styles.btnActionText}>🔒  Alterar Senha</Text>
+                    <Text style={styles.btnActionText}>Alterar Senha</Text>
                 </TouchableOpacity>
             </View>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Integrações</Text>
                 <InfoRow label="Steam ID" value={usuario.steamId || "Não vinculado"} />
+                
+                {usuario.steamId && (
+                    <TouchableOpacity 
+                        style={styles.btnAction} 
+                        onPress={() => router.push('/importar-biblioteca')}
+                    >
+                        <Text style={styles.btnActionText}>Sincronizar Jogos</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             <TouchableOpacity style={styles.btnLogout} onPress={handleLogout}>
