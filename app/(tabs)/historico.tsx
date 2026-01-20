@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4
   },
-  capa: { width: 60, height: 80, borderRadius: 8 },
+  capa: { width: 40, height: 40, borderRadius: 8 },
   
   info: { flex: 1, marginLeft: 15, justifyContent: 'center' },
   titulo: { fontSize: 16, fontWeight: 'bold', color: '#333' },
