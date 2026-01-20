@@ -73,7 +73,8 @@ export default function ImportarBibliotecaScreen() {
                     const jogoOriginal = jogos.find(j => j.steamId === idSelecionado);
                     return {
                         steamId: idSelecionado,
-                        horasJogadas: jogoOriginal ? jogoOriginal.horasJogadas : 0
+                        horasJogadas: jogoOriginal ? jogoOriginal.horasJogadas : 0,
+                        iconeUrl: jogoOriginal ? jogoOriginal.iconeUrl : null
                     };
                 });
 
