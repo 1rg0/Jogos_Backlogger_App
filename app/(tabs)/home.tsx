@@ -1,21 +1,154 @@
-import React, { useState, useCallback } from 'react'; 
-import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api, { API_URL } from '../../src/services/api';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    ImageBackground,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import api from '../../src/services/api';
 import { ItemBacklog } from '../../src/types/ItemBacklog';
-import { UsuarioDetailDTO } from '../../src/types/UsuarioDTO';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
-import { Ionicons } from '@expo/vector-icons'; 
+
+const COLORS = {
+    background: '#363B4E',  
+    cardBg: 'rgba(0, 0, 0, 0.25)', 
+    cardHighlight: 'rgba(79, 59, 120, 0.4)', 
+    primary: '#4F3B78',     
+    accent: '#927FBF',      
+    highlight: '#C4BBF0',   
+    text: '#FFFFFF',
+    textSec: '#B0B0B0',
+    success: '#69F0AE',
+    warning: '#FFD740'
+};
+
+const BigCard = ({ item, drag, isActive, onPress, indexDebug }: { item: ItemBacklog, drag: () => void, isActive: boolean, onPress: () => void, indexDebug: number }) => {
+    const horasTotais = item.jogo.horasParaZerar || 1;
+    const progresso = Math.min(item.horasJogadas / horasTotais, 1);
+    const imagemUri = item.jogo.imagem || item.jogo.icone;
+
+    return (
+        <ScaleDecorator>
+            <TouchableOpacity 
+                onLongPress={drag}
+                disabled={isActive}
+                activeOpacity={0.9}
+                onPress={onPress}
+                style={[styles.bigCard, isActive && styles.cardActive]}
+            >
+                {imagemUri ? (
+                    <ImageBackground 
+                        source={{ uri: imagemUri }}
+                        style={styles.bigCardBackground}
+                        imageStyle={{ borderRadius: 16 }}
+                        resizeMode="cover"
+                    >
+                        <View style={styles.bigCardOverlay} />
+                        <View style={styles.bigCardContent}>
+                            <View style={styles.badgeTopContainer}>
+                                 <View style={styles.playingBadge}>
+                                    <Ionicons name="game-controller" size={12} color="#fff" />
+                                    <Text style={styles.playingText}>JOGANDO AGORA</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.textBottomContainer}>
+                                <Text style={styles.bigTitle} numberOfLines={1}>{item.jogo.titulo}</Text>
+                                <Text style={styles.bigSubtitle}>{item.jogo.desenvolvedora}</Text>
+                                <View style={styles.statsContainer}>
+                                    <View style={styles.progressBarBg}>
+                                        <View style={[styles.progressBarFill, { width: `${progresso * 100}%` }]} />
+                                    </View>
+                                    <Text style={styles.statsText}>
+                                        {item.horasJogadas.toFixed(1)}h / {item.jogo.horasParaZerar}h
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </ImageBackground>
+                ) : (
+                    <View style={[styles.bigCardBackground, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="image-outline" size={50} color="#666" />
+                        <Text style={{color: '#fff'}}>Sem Imagem</Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+        </ScaleDecorator>
+    );
+};
+
+const CompactCard = ({ item, drag, isActive, index, onPress, canDrag }: { item: ItemBacklog, drag: () => void, isActive: boolean, index: number, onPress: () => void, canDrag: boolean }) => {
+    const horasTotais = item.jogo.horasParaZerar || 1;
+    const progresso = Math.min(item.horasJogadas / horasTotais, 1);
+    const iconeUri = item.jogo.icone || item.jogo.imagem;
+
+    return (
+        <ScaleDecorator>
+            <TouchableOpacity 
+                onLongPress={canDrag ? drag : undefined}
+                disabled={isActive}
+                activeOpacity={0.7}
+                onPress={onPress}
+                style={[styles.compactCard, isActive && styles.cardActive]}
+            >
+                <View style={styles.rankContainer}>
+                    <Text style={styles.rankText}>#{index + 1}</Text>
+                </View>
+
+                {iconeUri ? (
+                    <Image source={{ uri: iconeUri }} style={styles.compactIcon} resizeMode="cover" />
+                ) : (
+                    <View style={[styles.compactIcon, { justifyContent: 'center', alignItems: 'center' }]}>
+                         <Ionicons name="image-outline" size={20} color={COLORS.textSec} />
+                    </View>
+                )}
+                
+                <View style={styles.compactContent}>
+                    <Text style={styles.compactTitle} numberOfLines={1}>{item.jogo.titulo}</Text>
+                    
+                    <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 6}}>
+                        <View style={[styles.progressBarBg, {height: 4, width: 60, marginRight: 8}]}>
+                            <View style={[styles.progressBarFill, { width: `${progresso * 100}%` }]} />
+                        </View>
+                        <Text style={styles.compactStatsText}>
+                            {Math.round(progresso * 100)}%
+                        </Text>
+                    </View>
+                </View>
+
+                {canDrag && (
+                     <Ionicons name="reorder-two" size={24} color={COLORS.highlight} style={{ opacity: 0.5 }} />
+                )}
+            </TouchableOpacity>
+        </ScaleDecorator>
+    );
+};
+
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [itens, setItens] = useState<ItemBacklog[]>([]);
+  const insets = useSafeAreaInsets();
+  
+  const [items, setItems] = useState<ItemBacklog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sincronizando, setSincronizando] = useState(false);
-  const [usuarioId, setUsuarioId] = useState<number | null>(null);
-  const [nomeUsuario, setNomeUsuario] = useState('');
-  const [fotoPerfil, setFotoPerfil] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [usuarioNome, setUsuarioNome] = useState('');
+  
+  const [filtroAtivo, setFiltroAtivo] = useState('Todos');
+  const [generosDisponiveis, setGenerosDisponiveis] = useState<string[]>(['Todos']);
+  const [listVersion, setListVersion] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -26,273 +159,373 @@ export default function HomeScreen() {
   async function carregarDados() {
     try {
       const jsonValue = await AsyncStorage.getItem('usuario_logado');
-      
       if (jsonValue != null) {
-        const usuarioLogado = JSON.parse(jsonValue);
-        setUsuarioId(usuarioLogado.id); 
+        const usuario = JSON.parse(jsonValue);
+        setUsuarioNome(usuario.nome.split(' ')[0]); 
         
-        const [userResponse, itensResponse] = await Promise.all([
-            api.get<UsuarioDetailDTO>(`/api/Usuario/${usuarioLogado.id}`),
-            api.get<ItemBacklog[]>(`/api/ItemBacklog?usuarioId=${usuarioLogado.id}`)
-        ]);
+        const response = await api.get('/api/ItemBacklog', {
+            params: { usuarioId: usuario.id }
+        });
 
-        const usuarioAtualizado = userResponse.data;
-        const listaItens = itensResponse.data;
+        const data: ItemBacklog[] = response.data;
+        
+        const jogosAtivos = data.filter(item => !item.finalizado || item.rejogando);
 
-        setNomeUsuario(usuarioAtualizado.nome.split(' ')[0]);
-        setFotoPerfil(usuarioAtualizado.imagemPerfil || '');
-
-        const backlogAtivo = listaItens
-            .filter((i: ItemBacklog) => !i.finalizado || i.rejogando)
-            .sort((a, b) => a.ordemId - b.ordemId);
-
-        setItens(backlogAtivo);
+        const sortedData = jogosAtivos.sort((a, b) => a.ordemId - b.ordemId);
+        
+        setItems(sortedData);
+        extrairGeneros(sortedData);
       }
-    } catch (e) {
-      console.error("Erro ao carregar home:", e);
+    } catch (error) {
+      console.error("Erro ao carregar backlog", error);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleSincronizarSteam() {
-    if (!usuarioId) return;
+      if (syncing) return;
 
-    setSincronizando(true);
-    try {
-        const response = await api.post(`/api/ItemBacklog/sincronizar-horas-steam?usuarioId=${usuarioId}`);
-        
-        Alert.alert(
-            "Sucesso",
-            response.data.message,
-            [
-                { text: "OK", onPress: () => carregarDados() }
-            ]
-        );
-    } catch (error: any) {
-        console.error("Erro ao sincronizar:", error);
-        const msg = error.response?.data || "Não foi possível conectar à Steam.";
-        Alert.alert("Erro", typeof msg === 'string' ? msg : "Erro na sincronização.");
-    } finally {
-        setSincronizando(false);
-    }
+      try {
+          setSyncing(true);
+          const jsonValue = await AsyncStorage.getItem('usuario_logado');
+          if (jsonValue) {
+              const usuario = JSON.parse(jsonValue);
+              await api.post(`/api/ItemBacklog/sincronizar-horas-steam?usuarioId=${usuario.id}`);
+              Alert.alert("Sucesso", "Horas sincronizadas com a Steam!");
+              await carregarDados(); 
+          }
+      } catch (error) {
+          console.error("Erro ao sincronizar steam", error);
+          Alert.alert("Erro", "Falha ao sincronizar com a Steam.");
+      } finally {
+          setSyncing(false);
+      }
   }
 
-  async function handleDragEnd(data: ItemBacklog[]) {
-    setItens(data);
+  function extrairGeneros(lista: ItemBacklog[]) {
+      const setGeneros = new Set<string>();
+      setGeneros.add('Todos');
+      lista.forEach(item => {
+          if (item.jogo.generos && Array.isArray(item.jogo.generos)) {
+              item.jogo.generos.forEach(g => setGeneros.add(g));
+          }
+      });
+      const arrayGeneros = Array.from(setGeneros);
+      const generosOrdenados = ['Todos', ...arrayGeneros.filter(g => g !== 'Todos').sort()];
+      setGenerosDisponiveis(generosOrdenados);
+  }
+
+  async function onDragEnd({ data }: { data: ItemBacklog[] }) {
+    if (filtroAtivo !== 'Todos') return;
+    
+    setItems(data);
+    setListVersion(prev => prev + 1);
+
     try {
-        const listaIds = data.map(item => item.id);
-        await api.patch('/api/ItemBacklog/reordenar', { listaIds });
+        await api.patch('/api/ItemBacklog/reordenar', { listaIds: data.map(i => i.id) });
     } catch (error) {
         console.error("Erro ao reordenar", error);
-        Alert.alert("Erro", "Falha ao salvar a nova ordem.");
         carregarDados();
     }
   }
 
-  const renderItem = ({ item, drag, isActive, getIndex }: RenderItemParams<ItemBacklog>) => {
-    const index = getIndex() || 0;
-    const isDestaque = index < 3;
+  const listaExibida = useMemo(() => {
+      if (filtroAtivo === 'Todos') return items;
+      return items.filter(item => item.jogo.generos?.includes(filtroAtivo));
+  }, [items, filtroAtivo]);
 
-    const horasJogadas = item.horasJogadas || 0;
-    const horasTotal = item.jogo.horasParaZerar || 0; 
-    
-    let porcentagem = 0;
-    if (horasTotal > 0) {
-        porcentagem = (horasJogadas / horasTotal) * 100;
-        if (porcentagem > 100) porcentagem = 100;
-    }
-
-    const imagemDestaque = item.jogo.imagem || item.jogo.icone;
+  const renderItem = useCallback(({ item, drag, isActive, getIndex }: RenderItemParams<ItemBacklog>) => {
+    const index = getIndex();
+    const isBigCard = filtroAtivo === 'Todos' && index !== undefined && index < 3;
 
     return (
-        <ScaleDecorator>
-            <TouchableOpacity
-                onLongPress={drag}
-                disabled={isActive}
-                onPress={() => router.push(`/item/${item.id}`)}
-                style={[
-                    styles.itemWrapper, 
-                    { backgroundColor: isActive ? '#f0e6fc' : 'transparent' }
-                ]}
-            >
-                {isDestaque ? (
-                    <View style={styles.cardDestaque}>
-                        <View style={styles.destaqueBadgeContainer}>
-                            <Text style={styles.destaqueBadge}>TOP {index + 1}</Text>
-                        </View>
-                        
-                        {imagemDestaque ? (
-                            <Image source={{ uri: imagemDestaque }} style={styles.capaDestaque} />
-                        ) : (
-                            <View style={[styles.capaDestaque, {backgroundColor: '#ccc'}]} />
-                        )}
-                        
-                        <Text style={styles.tituloDestaque} numberOfLines={1}>{item.jogo.titulo}</Text>
-                        <Text style={styles.subtituloDestaque} numberOfLines={1}>{item.jogo.desenvolvedora}</Text>
-                        
-                        <View style={styles.progressContainerDestaque}>
-                            <View style={styles.progressBarBackground}>
-                                <View style={[styles.progressBarFill, { width: `${porcentagem}%` }]} />
-                            </View>
-                            <Text style={styles.progressText}>
-                                {horasJogadas}h / {horasTotal > 0 ? `${horasTotal}h` : '?'}
-                            </Text>
-                        </View>
-                    </View>
-                ) : (
-                    <View style={styles.cardFila}>
-                        <Text style={styles.filaIndex}>#{index + 1}</Text>
-                        
-                        {item.jogo.icone ? (
-                            <Image 
-                                source={{ uri: item.jogo.icone }} 
-                                style={styles.iconeLista} 
-                                resizeMode="cover" 
-                            />
-                        ) : (
-                            <View style={[styles.iconeLista, {backgroundColor: '#ccc', justifyContent:'center', alignItems:'center'}]}>
-                                 <Ionicons name="game-controller-outline" size={20} color="#666" />
-                            </View>
-                        )}
-                        
-                        <View style={styles.infoContainer}>
-                            <Text style={styles.tituloFila} numberOfLines={1}>{item.jogo.titulo}</Text>
-                            
-                            <View style={styles.progressContainerFila}>
-                                <View style={styles.progressBarBackground}>
-                                    <View style={[styles.progressBarFill, { width: `${porcentagem}%` }]} />
-                                </View>
-                                <Text style={styles.progressTextSmall}>
-                                    {horasJogadas}h / {horasTotal > 0 ? `${horasTotal}h` : '?'}
-                                </Text>
-                            </View>
-                        </View>
-                        
-                        <Ionicons name="reorder-three-outline" size={24} color="#ccc" />
-                    </View>
-                )}
-            </TouchableOpacity>
-        </ScaleDecorator>
+        <View 
+            key={isBigCard ? `big-${item.id}-${listVersion}` : `compact-${item.id}-${listVersion}`}
+            collapsable={false} 
+        >
+            {isBigCard ? (
+                <BigCard 
+                    item={item} 
+                    drag={drag} 
+                    isActive={isActive} 
+                    onPress={() => router.push(`/item/${item.id}`)}
+                    indexDebug={index || 0}
+                />
+            ) : (
+                <CompactCard 
+                    item={item} 
+                    drag={drag} 
+                    isActive={isActive} 
+                    index={index || 0}
+                    canDrag={filtroAtivo === 'Todos'}
+                    onPress={() => router.push(`/item/${item.id}`)}
+                />
+            )}
+        </View>
     );
-  };
-
-  if (loading) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator color="#6200ee" size="large" />
-      </View>
-    );
-  }
+  }, [filtroAtivo, router, listVersion]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
-            <View>
-                <Text style={styles.greeting}>Olá,</Text>
-                <Text style={styles.username}>{nomeUsuario}</Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push('/perfil')}>
-                <View style={styles.profileButton}>
-                    {fotoPerfil ? (
-                        <Image 
-                            source={{ uri: `${API_URL}${fotoPerfil}?t=${new Date().getTime()}` }} 
-                            style={styles.profileImage}
-                            resizeMode="cover"
-                        />
-                    ) : (
-                        <Text style={{fontSize: 20}}>👤</Text>
-                    )}
-                </View>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS.background }}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+
+      <View style={[styles.header, { marginTop: insets.top + 10}]}>
+        <View style={{flex: 1}}>
+            <Text style={styles.greeting}>Olá, <Text style={{fontWeight: 'bold', color: COLORS.highlight}}>{usuarioNome}</Text></Text>
+            <Text style={styles.subGreeting}>O que vamos jogar hoje?</Text>
+        </View>
+        
+        <View style={styles.headerButtons}>
+            <TouchableOpacity 
+                onPress={handleSincronizarSteam} 
+                style={styles.syncButton}
+                activeOpacity={0.7}
+                disabled={syncing}
+            >
+                {syncing ? (
+                    <ActivityIndicator color={COLORS.highlight} size="small" />
+                ) : (
+                    <Ionicons name="refresh" size={22} color={COLORS.highlight} />
+                )}
             </TouchableOpacity>
+
+            <TouchableOpacity 
+                onPress={() => router.push('/explorar')} 
+                style={styles.addButton}
+                activeOpacity={0.8}
+            >
+                <Ionicons name="add" size={24} color="#fff" />
+            </TouchableOpacity>
+        </View>
       </View>
 
-      <TouchableOpacity 
-            style={styles.btnExplorar} 
-            onPress={() => router.push('/explorar')}
-      >
-            <Text style={styles.btnExplorarText}>Adicionar Novo Jogo</Text>
-      </TouchableOpacity>
-
-      <View>
-        <Text style = {styles.textJogando}>Jogando Agora</Text>
+      <View style={styles.filterContainer}>
+          <FlatList
+            horizontal
+            data={generosDisponiveis}
+            keyExtractor={item => item}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{paddingHorizontal: 20}}
+            renderItem={({item}) => (
+                <TouchableOpacity 
+                    style={[styles.chip, filtroAtivo === item && styles.chipActive]}
+                    onPress={() => setFiltroAtivo(item)}
+                >
+                    <Text style={[styles.chipText, filtroAtivo === item && styles.chipTextActive]}>{item}</Text>
+                </TouchableOpacity>
+            )}
+          />
       </View>
 
-      {itens.length === 0 && <Text style={styles.emptyText}>Nenhum jogo no backlog.</Text>}
+      {filtroAtivo !== 'Todos' && (
+          <View style={styles.warningBanner}>
+              <Ionicons name="information-circle" size={16} color={COLORS.warning} />
+              <Text style={styles.warningText}>Reordenação desativada enquanto filtra.</Text>
+          </View>
+      )}
 
-      <DraggableFlatList
-        data={itens}
-        onDragEnd={({ data }) => handleDragEnd(data)}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-      />
-
-      <TouchableOpacity 
-        style={styles.fab} 
-        onPress={handleSincronizarSteam}
-        disabled={sincronizando}
-      >
-        {sincronizando ? (
-            <ActivityIndicator size="small" color="#FFF" />
-        ) : (
-            <Ionicons name="sync" size={24} color="#FFF" />
-        )}
-      </TouchableOpacity>
-    </View>
+      {loading && items.length === 0 ? (
+        <View style={styles.center}>
+            <ActivityIndicator size="large" color={COLORS.accent} />
+        </View>
+      ) : (
+        <DraggableFlatList
+            data={listaExibida}
+            onDragEnd={onDragEnd}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={renderItem}
+            extraData={listVersion} 
+            contentContainerStyle={{ 
+                paddingBottom: insets.bottom + 150, 
+                paddingHorizontal: 20 
+            }}
+            showsVerticalScrollIndicator={false}
+            dragHitSlop={filtroAtivo === 'Todos' ? undefined : {}}
+            activationDistance={filtroAtivo === 'Todos' ? 5 : 99999}
+        />
+      )}
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 50, paddingBottom: 100, backgroundColor: '#f2f2f2' },
-  emptyText: { color: '#999', fontStyle: 'italic', marginTop: 10, textAlign: 'center' },
-
-  headerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greeting: { fontSize: 16, color: '#666' },
-  username: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  profileButton: { width: 45, height: 45, backgroundColor: '#fff', borderRadius: 25, justifyContent: 'center', alignItems: 'center', elevation: 2 },
-  profileImage: { width: 45, height: 45, borderRadius: 25 },
-
-  textJogando:{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15},
-  btnExplorar: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#6200ee', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 15 },
-  btnExplorarText: { color: '#6200ee', fontWeight: 'bold' },
-
-  itemWrapper: { marginBottom: 10 },
-
-  cardDestaque: { backgroundColor: '#fff', borderRadius: 12, padding: 15, elevation: 3, alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
-  destaqueBadgeContainer: { position: 'absolute', top: 10, left: 10, backgroundColor: '#6200ee', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, zIndex: 1 },
-  destaqueBadge: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  capaDestaque: { width: '100%', height: 180, borderRadius: 8, marginBottom: 10, resizeMode: 'cover' }, 
-  tituloDestaque: { fontSize: 18, fontWeight: 'bold', color: '#333', textAlign: 'center' },
-  subtituloDestaque: { fontSize: 14, color: '#666', textAlign: 'center' },
-
-  cardFila: { backgroundColor: '#fff', padding: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', elevation: 1 },
-  filaIndex: { fontSize: 14, fontWeight: 'bold', color: '#ccc', marginRight: 10, width: 25 },
-
-  iconeLista: { 
-    width: 40,
-    height: 40,
-    borderRadius: 4,
-    marginRight: 15 
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  
+  header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 15
+  },
+  greeting: { fontSize: 22, color: COLORS.text },
+  subGreeting: { fontSize: 14, color: COLORS.textSec, marginTop: 2 },
+  
+  headerButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10
   },
   
-  infoContainer: { flex: 1, justifyContent: 'center' },
-  tituloFila: { fontWeight: 'bold', fontSize: 14, color: '#333' },
-  
-  fab: {
-    position: 'absolute',
-    width: 60, height: 60, alignItems: 'center', justifyContent: 'center',
-    right: 20, bottom: 30, backgroundColor: '#6200ee', borderRadius: 30,
-    elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, zIndex: 999,
+  syncButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(196, 187, 240, 0.3)',
+      backgroundColor: 'rgba(0,0,0,0.2)'
   },
 
-  progressBarBackground: { height: 6, backgroundColor: '#e0e0e0', borderRadius: 3, width: '100%', overflow: 'hidden' },
-  progressBarFill: { height: '100%', backgroundColor: '#4ac403', borderRadius: 3 },
+  addButton: {
+      backgroundColor: COLORS.primary,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOpacity: 0.3,
+      shadowOffset: {width: 0, height: 2}
+  },
+
+  filterContainer: { marginBottom: 15, height: 35 },
+  chip: {
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      borderRadius: 20,
+      backgroundColor: COLORS.cardBg,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: 'transparent'
+  },
+  chipActive: {
+      backgroundColor: COLORS.primary,
+      borderColor: COLORS.accent
+  },
+  chipText: { color: COLORS.textSec, fontSize: 13, fontWeight: '600' },
+  chipTextActive: { color: '#fff' },
+
+  warningBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 215, 64, 0.1)',
+      padding: 8,
+      marginBottom: 10,
+      marginHorizontal: 20,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 215, 64, 0.3)'
+  },
+  warningText: { color: COLORS.warning, fontSize: 12, marginLeft: 6 },
+
+  bigCard: {
+      height: 180,
+      borderRadius: 16,
+      marginBottom: 16,
+      backgroundColor: '#222',
+      elevation: 5, 
+      overflow: 'hidden' 
+  },
+  cardActive: {
+      borderColor: COLORS.accent,
+      borderWidth: 2,
+      opacity: 0.9,
+      transform: [{ scale: 1.02 }]
+  },
+  bigCardBackground: {
+      flex: 1,
+      justifyContent: 'space-between',
+      borderRadius: 16,
+      overflow: 'hidden'
+  },
+  bigCardOverlay: { 
+      ...StyleSheet.absoluteFillObject, 
+      backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  bigCardContent: {
+      flex: 1,
+      justifyContent: 'space-between', 
+      padding: 16
+  },
+  badgeTopContainer: {
+      alignItems: 'flex-start'
+  },
+  textBottomContainer: {
+      justifyContent: 'flex-end'
+  },
+  playingBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.primary,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 4
+  },
+  playingText: { color: '#fff', fontSize: 10, fontWeight: 'bold', marginLeft: 4 },
   
-  progressContainerDestaque: { width: '100%', marginTop: 10, alignItems: 'center' },
-  progressText: { fontSize: 12, color: '#666', marginTop: 4, fontWeight: '500' },
+  bigTitle: { 
+      color: '#fff', 
+      fontSize: 20, 
+      fontWeight: 'bold', 
+      textShadowColor: 'rgba(0,0,0,0.8)', 
+      textShadowRadius: 4 
+  },
+  bigSubtitle: { 
+      color: COLORS.highlight, 
+      fontSize: 12, 
+      marginBottom: 8,
+      textShadowColor: 'rgba(0,0,0,0.8)', 
+      textShadowRadius: 4 
+  },
   
-  progressContainerFila: { marginTop: 4, width: '90%' },
-  progressTextSmall: { fontSize: 10, color: '#888', marginTop: 2 },
+  compactCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.cardBg,
+      borderRadius: 12,
+      padding: 10,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.05)',
+      height: 80 
+  },
+  rankContainer: {
+      width: 30,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 5
+  },
+  rankText: { color: COLORS.textSec, fontSize: 12, fontStyle: 'italic' },
+  
+  compactIcon: {
+      width: 40, 
+      height: 40, 
+      borderRadius: 4,
+      marginRight: 12,
+      backgroundColor: '#222'
+  },
+  compactContent: { flex: 1 },
+  compactTitle: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
+  compactStatsText: { color: COLORS.textSec, fontSize: 11 },
+
+  statsContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  progressBarBg: {
+      height: 6,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      borderRadius: 3,
+      flex: 1,
+      marginRight: 10
+  },
+  progressBarFill: {
+      height: '100%',
+      backgroundColor: COLORS.success,
+      borderRadius: 3
+  },
+  statsText: { color: '#fff', fontSize: 11, fontWeight: 'bold' }
 });

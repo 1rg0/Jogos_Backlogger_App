@@ -3,33 +3,55 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Image,
+  ActivityIndicator, 
+  Alert, 
+  FlatList, 
+  Image,
   Keyboard,
   StyleSheet,
-  Text, TextInput, TouchableOpacity, View
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  View,
+  StatusBar
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../src/services/api';
 import { ItemBacklog } from '../src/types/ItemBacklog';
 import { ItemBacklogCreateDTO } from '../src/types/ItemBacklogDTO';
 import { Jogo } from '../src/types/Jogo';
 
+// --- PALETA DE CORES ---
+const COLORS = {
+    background: '#363B4E',  
+    cardBg: 'rgba(0, 0, 0, 0.25)', 
+    primary: '#4F3B78',     
+    accent: '#927FBF',      
+    highlight: '#C4BBF0',   
+    text: '#FFFFFF',
+    textSec: '#B0B0B0',
+    success: '#69F0AE',
+    steam: '#171A21',
+    inputBg: 'rgba(0,0,0,0.3)'
+};
+
 interface SteamJogoResult {
     steamId: number;
     titulo: string;
-    capa: string;
+    capa: string;  // Banner (header_image)
+    icone: string; // Ícone pequeno (tiny_image) - AGORA VEM DO BACKEND
 }
 
 export default function ExplorarScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   
   const [modo, setModo] = useState<'local' | 'steam'>('local');
-
   const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(false);
   
   const [catalogoLocal, setCatalogoLocal] = useState<Jogo[]>([]); 
   const [listaLocalFiltrada, setListaLocalFiltrada] = useState<Jogo[]>([]);
-  
   const [listaSteam, setListaSteam] = useState<SteamJogoResult[]>([]);
 
   useFocusEffect(
@@ -88,6 +110,7 @@ export default function ExplorarScreen() {
       setLoading(true);
       try {
           const response = await api.get(`/api/Steam/search?q=${busca}`);
+          // Agora response.data deve conter [{ steamId, titulo, capa, icone }]
           setListaSteam(response.data);
       } catch (error) {
           console.error(error);
@@ -115,14 +138,14 @@ export default function ExplorarScreen() {
 
             await api.post('/api/ItemBacklog', novoItemDTO);
             Alert.alert("Sucesso", "Jogo adicionado ao backlog!");
-            carregarDadosLocais();
+            carregarDadosLocais(); 
         }    
     } catch(error){
         Alert.alert("Erro", "Falha ao adicionar jogo.");
     }
   }
 
-  async function handleImportarSteam(steamId: number) {
+  async function handleImportarSteam(itemSteam: SteamJogoResult) {
       try {
           setLoading(true);
           const usuarioJson = await AsyncStorage.getItem('usuario_logado');
@@ -130,22 +153,22 @@ export default function ExplorarScreen() {
           if(usuarioJson != null){
               const usuario = JSON.parse(usuarioJson);
               
+              // Payload corrigido: Envia o Ícone específico
               const payload = {
-                  steamId: steamId,
-                  usuarioId: usuario.id
+                  steamId: itemSteam.steamId,
+                  usuarioId: usuario.id,
+                  iconeUrl: itemSteam.icone || itemSteam.capa // Usa ícone se tiver, senão capa
               };
 
               await api.post('/api/ItemBacklog/importar-steam', payload);
               
               Alert.alert("Sucesso", "Jogo importado e adicionado ao backlog!");
-              
-              setListaSteam(old => old.filter(item => item.steamId !== steamId));
+              setListaSteam(old => old.filter(i => i.steamId !== itemSteam.steamId));
           }
       } catch (error: any) {
           console.error(error);
           const msg = error.response?.data ? String(error.response.data) : "Falha ao importar jogo.";
           Alert.alert("Ops", msg);
-          console.log(msg);
       } finally {
           setLoading(false);
       }
@@ -153,12 +176,14 @@ export default function ExplorarScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
       
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, { marginTop: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Explorar Jogos</Text>
+        <View style={{width: 40}} /> 
       </View>
 
       <View style={styles.tabContainer}>
@@ -178,33 +203,48 @@ export default function ExplorarScreen() {
       </View>
 
       <View style={styles.searchContainer}>
-        <TextInput 
-          style={styles.input}
-          placeholder={modo === 'local' ? "Filtrar catálogo..." : "Buscar na loja Steam..."}
-          value={busca}
-          onChangeText={(t) => modo === 'local' ? filtrarLocal(t) : setBusca(t)}
-          onSubmitEditing={() => modo === 'steam' && buscarNaSteam()}
-          returnKeyType="search"
-        />
+        <View style={styles.inputWrapper}>
+            <Ionicons name="search" size={20} color={COLORS.textSec} style={{marginRight: 8}} />
+            <TextInput 
+                style={styles.input}
+                placeholder={modo === 'local' ? "Filtrar catálogo..." : "Buscar na loja Steam..."}
+                placeholderTextColor={COLORS.textSec}
+                value={busca}
+                onChangeText={(t) => modo === 'local' ? filtrarLocal(t) : setBusca(t)}
+                onSubmitEditing={() => modo === 'steam' && buscarNaSteam()}
+                returnKeyType="search"
+                cursorColor={COLORS.accent}
+            />
+        </View>
+        
         {modo === 'steam' && (
             <TouchableOpacity style={styles.searchBtn} onPress={buscarNaSteam}>
-                <Ionicons name="search" size={20} color="#fff" />
+                <Ionicons name="arrow-forward" size={24} color="#fff" />
             </TouchableOpacity>
         )}
       </View>
 
-      {loading ? <ActivityIndicator size="large" color="#6200ee" style={{marginTop: 50}} /> : (
+      {loading ? (
+          <View style={{flex: 1, justifyContent: 'center'}}>
+              <ActivityIndicator size="large" color={COLORS.accent} />
+          </View>
+      ) : (
         <FlatList
           data={modo === 'local' ? listaLocalFiltrada : listaSteam}
           
           keyExtractor={(item: any) => modo === 'local' ? String(item.id) : String(item.steamId)}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 50, paddingHorizontal: 20 }}
           
           ListEmptyComponent={() => (
-             <View style={{ alignItems: 'center', marginTop: 50 }}>
-                 <Text style={{ color: '#999', textAlign: 'center' }}>
+             <View style={{ alignItems: 'center', marginTop: 80, opacity: 0.5 }}>
+                 <Ionicons 
+                    name={modo === 'local' ? "library-outline" : "cloud-offline-outline"} 
+                    size={60} 
+                    color={COLORS.textSec} 
+                 />
+                 <Text style={{ color: COLORS.textSec, textAlign: 'center', marginTop: 15 }}>
                      {modo === 'local' 
-                        ? (busca ? "Nenhum jogo encontrado." : "Tudo limpo! 🚀")
+                        ? (busca ? "Nenhum jogo encontrado." : "Tudo limpo! Seu backlog está em dia.")
                         : (listaSteam.length === 0 && busca ? "Nenhum resultado na Steam." : "Digite para buscar jogos online.")
                      }
                  </Text>
@@ -212,42 +252,52 @@ export default function ExplorarScreen() {
           )}
 
           renderItem={({ item }) => {
+            // Lógica ajustada: Se tiver 'icone' (Steam novo), usa. Se não, tenta 'icone' (Local) ou 'capa' (fallback)
             // @ts-ignore
-            const imagemUri = modo === 'local' ? item.icone : item.capa;
+            const imagemUri = item.icone || item.capa;
             
             return (
                 <View style={styles.card}>
-                {imagemUri ? (
-                    <Image source={{ uri: imagemUri }} style={styles.capa} resizeMode="cover" />
-                ) : (
-                    <View style={[styles.capa, { backgroundColor: '#ccc' }]} />
-                )}
-                
-                <View style={styles.info}>
-                    <Text style={styles.titulo}>{item.titulo}</Text>
-                    {modo === 'local' && (
-                        // @ts-ignore
-                        <Text style={styles.dev}>{item.desenvolvedora}</Text>
+                    {imagemUri ? (
+                        <Image source={{ uri: imagemUri }} style={styles.capa} resizeMode="cover" />
+                    ) : (
+                        <View style={[styles.capa, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+                             <Ionicons name="image-outline" size={24} color={COLORS.textSec} />
+                        </View>
                     )}
-                    {modo === 'steam' && <Text style={styles.dev}>Steam Store</Text>}
-                </View>
+                    
+                    <View style={styles.info}>
+                        <Text style={styles.titulo} numberOfLines={2}>{item.titulo}</Text>
+                        {modo === 'local' ? (
+                            // @ts-ignore
+                            <Text style={styles.dev} numberOfLines={1}>{item.desenvolvedora}</Text>
+                        ) : (
+                            <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
+                                <Ionicons name="logo-steam" size={12} color={COLORS.textSec} style={{marginRight: 4}} />
+                                <Text style={styles.dev}>Steam Store</Text>
+                            </View>
+                        )}
+                    </View>
 
-                <TouchableOpacity 
-                    style={[styles.btnAdd, modo === 'steam' ? styles.btnAddSteam : null]}
-                    onPress={() => {
-                        if (modo === 'local') {
-                            // @ts-ignore
-                            handleAdicionarLocal(item.id);
-                        } else {
-                            // @ts-ignore
-                            handleImportarSteam(item.steamId);
-                        }
-                    }} 
-                >
-                    <Text style={styles.btnAddText}>
-                        {modo === 'local' ? "+ ADD" : "⬇ IMPORTAR"}
-                    </Text>
-                </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.btnAdd, modo === 'steam' && styles.btnAddSteam]}
+                        onPress={() => {
+                            if (modo === 'local') {
+                                // @ts-ignore
+                                handleAdicionarLocal(item.id);
+                            } else {
+                                // @ts-ignore
+                                handleImportarSteam(item);
+                            }
+                        }} 
+                        activeOpacity={0.7}
+                    >
+                        {modo === 'local' ? (
+                            <Ionicons name="add" size={24} color="#fff" />
+                        ) : (
+                            <Ionicons name="cloud-download-outline" size={20} color="#fff" />
+                        )}
+                    </TouchableOpacity>
                 </View>
             );
           }}
@@ -258,57 +308,97 @@ export default function ExplorarScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20, paddingTop: 50, paddingBottom: 50 },
+  container: { flex: 1, backgroundColor: COLORS.background, paddingBottom: 50 },
   
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  backButton: { marginRight: 15, padding: 5 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+  headerRow: { 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingBottom: 15,
+      paddingTop: 10
+  },
+  backButton: {
+      padding: 8,
+      borderRadius: 20,
+      backgroundColor: COLORS.cardBg
+  },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.text },
 
-  tabContainer: { flexDirection: 'row', backgroundColor: '#e0e0e0', borderRadius: 10, padding: 4, marginBottom: 20 },
-  tabButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-  tabActive: { backgroundColor: '#fff', elevation: 2 },
-  tabText: { fontWeight: 'bold', color: '#777' },
-  tabTextActive: { color: '#6200ee' },
+  tabContainer: { 
+      flexDirection: 'row', 
+      backgroundColor: 'rgba(0,0,0,0.2)', 
+      borderRadius: 12, 
+      padding: 4, 
+      marginHorizontal: 20,
+      marginBottom: 20 
+  },
+  tabButton: { 
+      flex: 1, 
+      paddingVertical: 10, 
+      alignItems: 'center', 
+      borderRadius: 10 
+  },
+  tabActive: { backgroundColor: COLORS.primary },
+  tabText: { fontWeight: '600', color: COLORS.textSec },
+  tabTextActive: { color: '#fff' },
 
-  searchContainer: { marginBottom: 20, flexDirection: 'row', gap: 10 },
+  searchContainer: { 
+      marginHorizontal: 20, 
+      marginBottom: 20, 
+      flexDirection: 'row', 
+      gap: 10 
+  },
+  inputWrapper: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.inputBg,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)'
+  },
   input: { 
     flex: 1,
-    backgroundColor: '#fff', 
-    padding: 15, 
-    borderRadius: 10, 
+    paddingVertical: 12,
     fontSize: 16, 
-    borderWidth: 1, 
-    borderColor: '#ddd' 
+    color: '#fff' 
   },
-  searchBtn: { backgroundColor: '#6200ee', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 15, borderRadius: 10 },
+  searchBtn: { 
+      backgroundColor: COLORS.primary, 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      width: 50,
+      borderRadius: 12 
+  },
 
   card: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
+    backgroundColor: COLORS.cardBg, 
+    borderRadius: 16, 
     marginBottom: 12, 
     padding: 10, 
     flexDirection: 'row', 
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2
+    borderWidth: 1,
+    borderColor: 'transparent'
   },
-  capa: { width: 60, height: 80, borderRadius: 8, marginRight: 15 },
+  capa: { width: 50, height: 50, borderRadius: 8, marginRight: 15, backgroundColor: '#222' },
+  
   info: { flex: 1 },
-  titulo: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  dev: { fontSize: 12, color: '#666' },
+  titulo: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
+  dev: { fontSize: 12, color: COLORS.textSec },
   
   btnAdd: { 
-    backgroundColor: '#6200ee', 
-    paddingHorizontal: 12, 
-    paddingVertical: 8, 
-    borderRadius: 6,
-    minWidth: 70,
-    alignItems: 'center'
+    backgroundColor: COLORS.primary, 
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10
   },
   btnAddSteam: {
-      backgroundColor: '#2e7d32'
+      backgroundColor: '#2E7D32' 
   },
-  btnAddText: { color: '#fff', fontWeight: 'bold', fontSize: 12 }
 });

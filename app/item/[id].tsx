@@ -1,9 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { 
+  ActivityIndicator, 
+  Alert, 
+  Image, 
+  ImageBackground, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  View, 
+  StatusBar 
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../src/services/api';
+
+// --- PALETA DE CORES ---
+const COLORS = {
+    background: '#363B4E',  
+    cardBg: '#222', 
+    primary: '#4F3B78',     
+    accent: '#927FBF',      
+    highlight: '#C4BBF0',   
+    text: '#FFFFFF',
+    textSec: '#B0B0B0',
+    success: '#69F0AE',
+    gold: '#FFD740',
+    info: '#4FC3F7',
+    inputBg: 'rgba(0,0,0,0.3)',
+    overlay: 'rgba(0,0,0,0.7)'
+};
 
 interface ItemDetalhe {
   id: number;
@@ -55,7 +83,6 @@ export default function ItemDetalhesScreen() {
       router.back();
     } finally {
       setLoading(false);
-      
     }
   }
 
@@ -103,181 +130,277 @@ export default function ItemDetalhesScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6200ee" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
 
   if (!item) return null;
 
+  // Imagem de fundo principal (Capa grande ou Ícone)
+  const bgImage = item.jogo.imagem || item.jogo.icone;
+
   return (
-    <View style={{ 
-        flex: 1, 
-        backgroundColor: '#f9f9f9', 
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom
-    }}>
+    <View style={styles.container}>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        
+        {/* HEADER IMERSIVO COM IMAGEM DE FUNDO */}
+        <ImageBackground 
+            source={bgImage ? { uri: bgImage } : undefined} 
+            style={[styles.headerImage, { paddingTop: insets.top }]}
+            resizeMode="cover"
+        >
+            <View style={styles.headerOverlay} />
+            
+            {/* Botão Voltar */}
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            {/* Informações do Jogo (Sobreposto à imagem) */}
+            <View style={styles.headerContent}>
+                <Text style={styles.titulo}>{item.jogo.titulo}</Text>
+                <Text style={styles.dev}>{item.jogo.desenvolvedora}</Text>
+                
+                <View style={styles.tagsContainer}>
+                    {item.jogo.generos && item.jogo.generos.map((g, i) => (
+                        <View key={i} style={styles.tag}>
+                            <Text style={styles.tagText}>{g}</Text>
+                        </View>
+                    ))}
+                </View>
+            </View>
+        </ImageBackground>
+
+        {/* CONTEÚDO SCROLLÁVEL */}
         <ScrollView 
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            style={styles.scrollContainer}
         >
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backBtnCircle}>
-                <Ionicons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-        
-          <View style={styles.header}>
-            <View style={styles.imageContainer}>
-                {item.jogo.imagem ? (
-                    <Image 
-                        source={{ uri: item.jogo.imagem }} 
-                        style={styles.capa} 
-                        resizeMode='contain'
-                    />
-                ) : (
-                    <View style={[styles.capa, { backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center' }]}>
-                        <Ionicons name="image-outline" size={50} color="#fff" />
-                    </View>
-                )}
-            </View>
-
-            <Text style={styles.titulo}>{item.jogo.titulo}</Text>
-            <Text style={styles.dev}>{item.jogo.desenvolvedora}</Text>
-            
-            <View style={styles.tagsContainer}>
-                {item.jogo.generos && item.jogo.generos.map((g, i) => (
-                    <View key={i} style={styles.tag}>
-                        <Text style={styles.tagText}>{g}</Text>
-                    </View>
-                ))}
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
+          {/* SEÇÃO: STATUS */}
           <View style={styles.section}>
             <Text style={styles.labelSection}>Status Atual</Text>
             <View style={styles.row}>
                 <TouchableOpacity 
                     style={[styles.btnStatus, item.finalizado ? styles.btnSuccess : styles.btnOutline]}
                     onPress={() => toggleStatus('finalizado')}
+                    activeOpacity={0.8}
                 >
-                    <Text style={[styles.btnText, item.finalizado ? styles.textWhite : styles.textDark]}>
-                        {item.finalizado ? "Finalizado" : "Marcar Finalizado"}
+                    <Ionicons 
+                        name={item.finalizado ? "checkmark-circle" : "ellipse-outline"} 
+                        size={20} 
+                        color={item.finalizado ? "#fff" : COLORS.textSec} 
+                        style={{marginRight: 8}}
+                    />
+                    <Text style={[styles.btnText, item.finalizado ? styles.textWhite : styles.textSec]}>
+                        {item.finalizado ? "Finalizado" : "Finalizado?"}
                     </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
                     style={[styles.btnStatus, item.rejogando ? styles.btnInfo : styles.btnOutline]}
                     onPress={() => toggleStatus('rejogando')}
+                    activeOpacity={0.8}
                 >
-                    <Text style={[styles.btnText, item.rejogando ? styles.textWhite : styles.textDark]}>
+                    <Ionicons 
+                        name={item.rejogando ? "refresh-circle" : "refresh-circle-outline"} 
+                        size={20} 
+                        color={item.rejogando ? "#fff" : COLORS.textSec} 
+                        style={{marginRight: 8}}
+                    />
+                    <Text style={[styles.btnText, item.rejogando ? styles.textWhite : styles.textSec]}>
                         {item.rejogando ? "Rejogando" : "Rejogar?"}
                     </Text>
                 </TouchableOpacity>
             </View>
           </View>
 
+          {/* SEÇÃO: PROGRESSO */}
           <View style={styles.section}>
             <Text style={styles.labelSection}>Meu Progresso</Text>
             <View style={styles.row}>
                 <View style={{flex: 1, marginRight: 10}}>
                     <Text style={styles.labelInput}>Horas Jogadas</Text>
-                    <TextInput 
-                        style={styles.input}
-                        value={horasInput}
-                        onChangeText={setHorasInput}
-                        keyboardType="numeric"
-                    />
+                    <View style={styles.inputContainer}>
+                        <Ionicons name="time-outline" size={18} color={COLORS.highlight} style={{marginRight: 8}} />
+                        <TextInput 
+                            style={styles.input}
+                            value={horasInput}
+                            onChangeText={setHorasInput}
+                            keyboardType="numeric"
+                            cursorColor={COLORS.accent}
+                        />
+                    </View>
                 </View>
 
                 <View style={{flex: 1}}>
                     <Text style={styles.labelInput}>Vezes Zerado</Text>
-                    <TextInput 
-                        style={styles.input}
-                        value={vezesInput}
-                        onChangeText={setVezesInput}
-                        keyboardType="numeric"
-                    />
+                    <View style={styles.inputContainer}>
+                        <Ionicons name="trophy-outline" size={18} color={COLORS.gold || '#FFD740'} style={{marginRight: 8}} />
+                        <TextInput 
+                            style={styles.input}
+                            value={vezesInput}
+                            onChangeText={setVezesInput}
+                            keyboardType="numeric"
+                            cursorColor={COLORS.accent}
+                        />
+                    </View>
                 </View>
             </View>
-            <Text style={styles.hint}>Tempo estimado para zerar: {item.jogo.horasParaZerar}h</Text>
+            <Text style={styles.hint}>
+                <Ionicons name="information-circle-outline" size={12} /> Tempo estimado para finalizar: {item.jogo.horasParaZerar}h
+            </Text>
           </View>
 
+          {/* SEÇÃO: SINOPSE */}
           <View style={styles.section}>
             <Text style={styles.labelSection}>Sinopse</Text>
-            <Text style={styles.sinopseText}>{item.jogo.sinopse || "Sem sinopse disponível."}</Text>
+            <Text style={styles.sinopseText}>
+                {item.jogo.sinopse || "Sem sinopse disponível."}
+            </Text>
           </View>
 
-          <View style={{backgroundColor: '#fff', paddingBottom: 20}}>
+        </ScrollView>
+
+        {/* BOTÃO FLUTUANTE DE SALVAR */}
+        <View style={[styles.footerContainer, { paddingBottom: insets.bottom + 10 }]}>
             <TouchableOpacity 
                 style={styles.btnSalvar} 
                 onPress={handleSalvar}
                 disabled={salvando}
+                activeOpacity={0.9}
             >
-                {salvando ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnSalvarText}>SALVAR ALTERAÇÕES</Text>}
+                {salvando ? (
+                    <ActivityIndicator color="#fff" />
+                ) : (
+                    <Text style={styles.btnSalvarText}>SALVAR ALTERAÇÕES</Text>
+                )}
             </TouchableOpacity>
-          </View>
-        </ScrollView>
+        </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  topBar: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    alignItems: 'flex-start',
-    backgroundColor: '#f9f9f9',
-  },
-  backBtnCircle: {
-    backgroundColor: '#fff',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-  },
-  header: { alignItems: 'center', paddingHorizontal: 20, paddingBottom: 20, backgroundColor: '#f9f9f9' },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   
-  imageContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 15,
-    marginTop: 10,
+  // Header Imersivo
+  headerImage: {
+      width: '100%',
+      height: 300,
+      justifyContent: 'space-between',
   },
-  capa: { 
-    width: '100%', 
-    height: 200,
+  headerOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.4)', // Escurece a imagem
+      // Gradiente fake via background se quisesse, mas overlay sólido resolve
+  },
+  backBtn: {
+      marginTop: 10,
+      marginLeft: 20,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10
+  },
+  headerContent: {
+      padding: 20,
+      paddingBottom: 30,
+      // Fundo degradê fake para o texto ficar legível
+      backgroundColor: 'rgba(0,0,0,0.6)'
+  },
+  titulo: { fontSize: 28, fontWeight: 'bold', color: '#fff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 4 },
+  dev: { fontSize: 16, color: COLORS.highlight, marginTop: 4, fontWeight: '600' },
+  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, gap: 8 },
+  tag: { 
+      backgroundColor: 'rgba(255,255,255,0.2)', 
+      paddingHorizontal: 10, paddingVertical: 4, 
+      borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' 
+  },
+  tagText: { fontSize: 12, color: '#fff', fontWeight: 'bold' },
+
+  // Conteúdo
+  scrollContainer: { 
+      flex: 1, 
+      backgroundColor: COLORS.background, 
+      borderTopLeftRadius: 24, 
+      borderTopRightRadius: 24, 
+      marginTop: -20, // Sobe por cima da imagem
+      paddingTop: 20
   },
   
-  titulo: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#333' },
-  dev: { fontSize: 16, color: '#666', marginTop: 4 },
-  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 15, gap: 8 },
-  tag: { backgroundColor: '#e0e0e0', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 15 },
-  tagText: { fontSize: 12, color: '#333' },
-  divider: { height: 1, backgroundColor: '#eee', marginHorizontal: 20},
-  section: { padding: 20, paddingBottom: 5, backgroundColor: '#fff', marginHorizontal: 15, marginTop: 15, borderRadius: 10, elevation: 1 }, // Cards separados
-  labelSection: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#333' },
+  section: { 
+      padding: 20, 
+      backgroundColor: COLORS.cardBg, 
+      marginHorizontal: 15, 
+      marginBottom: 15, 
+      borderRadius: 16, 
+      borderWidth: 1, 
+      borderColor: 'rgba(255,255,255,0.05)'
+  },
+  labelSection: { fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: COLORS.highlight, textTransform: 'uppercase', letterSpacing: 1 },
+  
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  btnStatus: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', borderWidth: 1, justifyContent: 'center' },
-  btnOutline: { borderColor: '#ccc', backgroundColor: 'transparent' },
-  btnSuccess: { backgroundColor: '#28a745', borderColor: '#28a745' },
-  btnInfo: { backgroundColor: '#17a2b8', borderColor: '#17a2b8' },
-  btnText: { fontWeight: 'bold', fontSize: 14 },
-  textWhite: { color: '#fff' },
-  textDark: { color: '#333' },
-  labelInput: { fontSize: 14, color: '#666', marginBottom: 5 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, fontSize: 18, backgroundColor: '#fff', textAlign: 'center' },
-  hint: { fontSize: 12, color: '#888', marginTop: 8, fontStyle: 'italic' },
-  sinopseText: { fontSize: 15, lineHeight: 22, color: '#444', textAlign: 'justify' },
-  btnSalvar: { backgroundColor: '#6200ee', margin: 20, padding: 16, borderRadius: 10, alignItems: 'center', elevation: 2 },
-  btnSalvarText: { color: '#fff', fontWeight: 'bold', fontSize: 16, letterSpacing: 1 }
+  
+  // Botões de Status
+  btnStatus: { 
+      flex: 1, 
+      padding: 12, 
+      borderRadius: 12, 
+      alignItems: 'center', 
+      borderWidth: 1, 
+      justifyContent: 'center',
+      flexDirection: 'row'
+  },
+  btnOutline: { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'transparent' },
+  btnSuccess: { backgroundColor: COLORS.success, borderColor: COLORS.success },
+  btnInfo: { backgroundColor: COLORS.info, borderColor: COLORS.info },
+  
+  btnText: { fontWeight: 'bold', fontSize: 13 },
+  textWhite: { color: '#000' }, // Texto preto em fundos claros/neon
+  textSec: { color: COLORS.textSec },
+
+  // Inputs
+  labelInput: { fontSize: 12, color: COLORS.textSec, marginBottom: 5, fontWeight: 'bold' },
+  inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.inputBg,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)',
+      paddingHorizontal: 10
+  },
+  input: { 
+      flex: 1,
+      padding: 10, 
+      fontSize: 16, 
+      color: '#fff', 
+      textAlign: 'left'
+  },
+  hint: { fontSize: 12, color: COLORS.textSec, marginTop: 10, fontStyle: 'italic' },
+  
+  sinopseText: { fontSize: 15, lineHeight: 24, color: '#ddd', textAlign: 'justify' },
+
+  // Footer Fixo
+  footerContainer: {
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      backgroundColor: COLORS.background,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.05)'
+  },
+  btnSalvar: { 
+      backgroundColor: COLORS.primary, 
+      padding: 16, 
+      borderRadius: 12, 
+      alignItems: 'center', 
+      shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 6
+  },
+  btnSalvarText: { color: '#fff', fontWeight: 'bold', fontSize: 16, letterSpacing: 1 },
 });
