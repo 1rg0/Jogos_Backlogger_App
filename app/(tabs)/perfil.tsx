@@ -1,15 +1,33 @@
 import React, { useState, useCallback } from 'react';
 import { 
     View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, 
-    ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image 
+    ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, Image, StatusBar 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, {API_URL} from '../../src/services/api';
 import { UsuarioDetailDTO } from '../../src/types/UsuarioDTO';
 
+// --- PALETA DE CORES ---
+const COLORS = {
+    background: '#363B4E',  
+    cardBg: 'rgba(0, 0, 0, 0.25)', 
+    primary: '#4F3B78',     
+    accent: '#927FBF',      
+    highlight: '#C4BBF0',   
+    text: '#FFFFFF',
+    textSec: '#B0B0B0',
+    success: '#69F0AE',
+    danger: '#EF5350',
+    inputBg: 'rgba(0,0,0,0.3)',
+    overlay: 'rgba(0,0,0,0.7)'
+};
+
 export default function PerfilScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   
   const [loading, setLoading] = useState(true);
   const [usuario, setUsuario] = useState<UsuarioDetailDTO | null>(null);
@@ -104,13 +122,18 @@ export default function PerfilScreen() {
   };
   const formatarData = (d: string) => d ? d.split('T')[0].split('-').reverse().join('/') : '-';
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#6200ee" /></View>;
-  if (!usuario) return <View style={styles.center}><Text>Erro ao carregar.</Text></View>;
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>;
+  if (!usuario) return <View style={styles.center}><Text style={{color: '#fff'}}>Erro ao carregar.</Text></View>;
 
   return (
-    <View style={{flex: 1}}>
-        <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 40}}>
+    <View style={{flex: 1, backgroundColor: COLORS.background}}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
         
+        <ScrollView 
+            style={styles.container} 
+            contentContainerStyle={{paddingBottom: 100, paddingTop: insets.top}}
+        >
+            {/* CABEÇALHO DO PERFIL */}
             <View style={styles.header}>
                 <View style={styles.avatarContainer}>
                     {usuario.imagemPerfil ? (
@@ -124,62 +147,95 @@ export default function PerfilScreen() {
                             {usuario.nome?.charAt(0).toUpperCase()}
                         </Text>
                     )}
+                    <TouchableOpacity style={styles.editAvatarBtn} onPress={() => router.push('/editar-perfil')}>
+                        <Ionicons name="pencil" size={16} color="#fff" />
+                    </TouchableOpacity>
                 </View>
 
                 <Text style={styles.nome}>{usuario.nome}</Text>
                 <Text style={styles.email}>{usuario.email}</Text>
-                <View style={[styles.badge, { backgroundColor: usuario.ativo ? '#e8f5e9' : '#ffebee' }]}>
-                    <Text style={{ color: usuario.ativo ? '#2e7d32' : '#c62828', fontSize: 12, fontWeight: 'bold' }}>
+                
+                <View style={[styles.badge, { borderColor: usuario.ativo ? COLORS.success : COLORS.danger }]}>
+                    <View style={[styles.statusDot, { backgroundColor: usuario.ativo ? COLORS.success : COLORS.danger }]} />
+                    <Text style={{ color: usuario.ativo ? COLORS.success : COLORS.danger, fontSize: 11, fontWeight: 'bold' }}>
                         {usuario.ativo ? 'CONTA ATIVA' : 'INATIVA'}
                     </Text>
                 </View>
             </View>
 
+            {/* SEÇÃO: DADOS PESSOAIS */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Dados Pessoais</Text>
+                <View style={styles.sectionHeader}>
+                    <Ionicons name="person-outline" size={20} color={COLORS.highlight} />
+                    <Text style={styles.sectionTitle}>Dados Pessoais</Text>
+                </View>
+                
+                <View style={styles.divider} />
+                
                 <InfoRow label="ID" value={`#${usuario.id}`} />
                 <InfoRow label="Nascimento" value={formatarData(usuario.dataNascimento)} />
                 <InfoRow label="Gênero" value={getGeneroTexto(usuario.genero)} />
                 <InfoRow label="Celular" value={usuario.telefone || "Não cadastrado"} />
+                
                 <TouchableOpacity 
                     style={styles.btnEdit} 
                     onPress={() => router.push('/editar-perfil')}
                 >
-                    <Text style={styles.btnEditText}>Editar Dados</Text>
+                    <Text style={styles.btnEditText}>Editar Informações</Text>
                 </TouchableOpacity>
             </View>
 
+            {/* SEÇÃO: INTEGRAÇÕES */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Segurança</Text>
-                
-                <TouchableOpacity style={styles.btnAction} onPress={() => setModalVisible(true)}>
-                    <Text style={styles.btnActionText}>Alterar Senha</Text>
-                </TouchableOpacity>
-            </View>
+                <View style={styles.sectionHeader}>
+                    <Ionicons name="logo-steam" size={20} color={COLORS.highlight} />
+                    <Text style={styles.sectionTitle}>Integrações</Text>
+                </View>
 
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Integrações</Text>
+                <View style={styles.divider} />
+
                 <InfoRow label="Steam ID" value={usuario.steamId || "Não vinculado"} />
                 
-                {usuario.steamId && (
-                    <TouchableOpacity 
-                        style={styles.btnAction} 
-                        onPress={() => router.push('/importar-biblioteca')}
-                    >
-                        <Text style={styles.btnActionText}>Sincronizar Jogos</Text>
-                    </TouchableOpacity>
-                )}
+                {/* Botão de Importar/Sincronizar (Destaque) */}
+                <TouchableOpacity 
+                    style={styles.btnSync} 
+                    onPress={() => router.push('/importar-biblioteca')}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons name="cloud-download-outline" size={20} color="#fff" style={{marginRight: 8}} />
+                    <Text style={styles.btnSyncText}>
+                        {usuario.steamId ? "Sincronizar Biblioteca Steam" : "Vincular Steam"}
+                    </Text>
+                </TouchableOpacity>
             </View>
 
+            {/* SEÇÃO: SEGURANÇA */}
+            <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                    <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.highlight} />
+                    <Text style={styles.sectionTitle}>Segurança</Text>
+                </View>
+                
+                <View style={styles.divider} />
+
+                <TouchableOpacity style={styles.btnAction} onPress={() => setModalVisible(true)}>
+                    <Text style={styles.btnActionText}>Alterar Senha</Text>
+                    <Ionicons name="chevron-forward" size={18} color={COLORS.textSec} />
+                </TouchableOpacity>
+            </View>
+
+            {/* LOGOUT */}
             <TouchableOpacity style={styles.btnLogout} onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={20} color={COLORS.danger} style={{marginRight: 8}} />
                 <Text style={styles.btnLogoutText}>SAIR DO APP</Text>
             </TouchableOpacity>
 
             <Text style={styles.version}>Versão 1.0.0</Text>
         </ScrollView>
 
+        {/* MODAL DE SENHA (DARK MODE) */}
         <Modal
-            animationType="slide"
+            animationType="fade"
             transparent={true}
             visible={modalVisible}
             onRequestClose={() => setModalVisible(false)}
@@ -194,6 +250,8 @@ export default function PerfilScreen() {
                         secureTextEntry 
                         value={senhaAtual} 
                         onChangeText={setSenhaAtual} 
+                        placeholderTextColor="#666"
+                        cursorColor={COLORS.accent}
                     />
 
                     <Text style={styles.labelInput}>Nova Senha</Text>
@@ -202,6 +260,8 @@ export default function PerfilScreen() {
                         secureTextEntry 
                         value={novaSenha} 
                         onChangeText={setNovaSenha} 
+                        placeholderTextColor="#666"
+                        cursorColor={COLORS.accent}
                     />
 
                     <Text style={styles.labelInput}>Confirmar Nova Senha</Text>
@@ -210,6 +270,8 @@ export default function PerfilScreen() {
                         secureTextEntry 
                         value={confirmarSenha} 
                         onChangeText={setConfirmarSenha} 
+                        placeholderTextColor="#666"
+                        cursorColor={COLORS.accent}
                     />
 
                     <View style={styles.modalButtons}>
@@ -237,63 +299,108 @@ export default function PerfilScreen() {
 
 const InfoRow = ({ label, value }: { label: string, value: string }) => (
     <View style={styles.infoRow}>
-        <Text style={styles.label}>{label}:</Text>
+        <Text style={styles.label}>{label}</Text>
         <Text style={styles.value}>{value}</Text>
     </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   
-  header: { alignItems: 'center', marginTop: 20, marginBottom: 30 },
+  header: { alignItems: 'center', marginBottom: 25, marginTop: 10 },
   avatarContainer: { 
-    width: 90, height: 90, borderRadius: 45, backgroundColor: '#6200ee', 
-    justifyContent: 'center', alignItems: 'center', marginBottom: 10, elevation: 4,
-    overflow: 'hidden'
+    width: 100, height: 100, borderRadius: 50, backgroundColor: COLORS.cardBg, 
+    justifyContent: 'center', alignItems: 'center', marginBottom: 15,
+    borderWidth: 2, borderColor: COLORS.accent,
+    position: 'relative'
   },
-  avatarText: { fontSize: 36, color: '#fff', fontWeight: 'bold' },
-  avatarImage: { width: 90, height: 90, borderRadius: 45 },
+  avatarText: { fontSize: 40, color: COLORS.highlight, fontWeight: 'bold' },
+  avatarImage: { width: 96, height: 96, borderRadius: 48 },
+  editAvatarBtn: {
+      position: 'absolute', bottom: 0, right: 0, 
+      backgroundColor: COLORS.primary, padding: 8, borderRadius: 20,
+      borderWidth: 2, borderColor: COLORS.background
+  },
 
-  nome: { fontSize: 22, fontWeight: 'bold', color: '#333' },
-  email: { fontSize: 14, color: '#666', marginTop: 2 },
-  badge: { marginTop: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  nome: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, letterSpacing: 0.5 },
+  email: { fontSize: 14, color: COLORS.textSec, marginTop: 4 },
+  
+  badge: { 
+      marginTop: 10, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+      borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
 
-  section: { backgroundColor: '#fff', borderRadius: 12, padding: 15, marginBottom: 15, elevation: 2 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: '#444', borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingBottom: 5 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  label: { color: '#666', fontSize: 14 },
-  value: { color: '#333', fontSize: 14, fontWeight: '500' },
+  // --- SEÇÕES (CARDS) ---
+  section: { 
+      backgroundColor: COLORS.cardBg, 
+      marginHorizontal: 20, borderRadius: 16, 
+      padding: 16, marginBottom: 16,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)'
+  },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.highlight },
+  
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 12 },
 
-  btnAction: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  btnActionText: { fontSize: 16, color: '#6200ee', fontWeight: '600' },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  label: { color: COLORS.textSec, fontSize: 14 },
+  value: { color: COLORS.text, fontSize: 14, fontWeight: '500' },
 
-  btnLogout: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#d32f2f', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  btnLogoutText: { color: '#d32f2f', fontWeight: 'bold', fontSize: 14 },
-  version: { textAlign: 'center', color: '#ccc', marginTop: 20, fontSize: 10 },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#fff', borderRadius: 15, padding: 20, elevation: 5 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, textAlign: 'center', color: '#333' },
-  labelInput: { color: '#666', marginBottom: 5, fontSize: 12, fontWeight: 'bold' },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 15, fontSize: 16 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 10 },
-  modalBtn: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center' },
-  btnCancel: { backgroundColor: '#f0f0f0' },
-  btnConfirm: { backgroundColor: '#6200ee' },
-  textCancel: { color: '#333', fontWeight: 'bold' },
-  textConfirm: { color: '#fff', fontWeight: 'bold' },
-
+  // --- BOTÕES ---
   btnEdit: { 
-    marginTop: 15, 
-    padding: 10, 
-    backgroundColor: '#f0e6fc',
-    borderRadius: 8, 
-    alignItems: 'center' 
+    marginTop: 5, padding: 12, 
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)'
   },
-  btnEditText: { 
-    color: '#6200ee', 
-    fontWeight: 'bold',
-    fontSize: 14
+  btnEditText: { color: COLORS.highlight, fontWeight: 'bold', fontSize: 14 },
+
+  btnSync: {
+      marginTop: 10, padding: 14,
+      backgroundColor: COLORS.primary,
+      borderRadius: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center',
+      shadowColor: "#000", shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4
   },
+  btnSyncText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+
+  btnAction: { 
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+      paddingVertical: 12 
+  },
+  btnActionText: { fontSize: 15, color: COLORS.text },
+
+  btnLogout: { 
+      flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+      marginHorizontal: 20, marginTop: 10, marginBottom: 10,
+      padding: 14, borderRadius: 12, 
+      borderWidth: 1, borderColor: COLORS.danger,
+      backgroundColor: 'rgba(239, 83, 80, 0.1)'
+  },
+  btnLogoutText: { color: COLORS.danger, fontWeight: 'bold', fontSize: 14, letterSpacing: 0.5 },
+  version: { textAlign: 'center', color: '#555', marginTop: 10, fontSize: 10 },
+
+  // --- MODAL ---
+  modalOverlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'center', padding: 20 },
+  modalContent: { 
+      backgroundColor: '#2C2C2C', borderRadius: 16, padding: 24, 
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)'
+  },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#fff' },
+  
+  labelInput: { color: COLORS.textSec, marginBottom: 6, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' },
+  input: { 
+      backgroundColor: 'rgba(0,0,0,0.3)', 
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', 
+      borderRadius: 8, padding: 12, marginBottom: 16, 
+      fontSize: 16, color: '#fff' 
+  },
+  
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 10 },
+  modalBtn: { flex: 1, padding: 14, borderRadius: 8, alignItems: 'center' },
+  btnCancel: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  btnConfirm: { backgroundColor: COLORS.primary },
+  textCancel: { color: '#ddd', fontWeight: '600' },
+  textConfirm: { color: '#fff', fontWeight: 'bold' },
 });

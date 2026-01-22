@@ -2,8 +2,31 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { 
+    ActivityIndicator, 
+    Alert, 
+    FlatList, 
+    Image, 
+    StyleSheet, 
+    Text, 
+    TouchableOpacity, 
+    View,
+    StatusBar 
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../src/services/api';
+
+const COLORS = {
+    background: '#363B4E',  
+    cardBg: 'rgba(0, 0, 0, 0.25)', 
+    cardSelected: 'rgba(79, 59, 120, 0.4)',
+    primary: '#4F3B78',     
+    accent: '#927FBF',      
+    highlight: '#C4BBF0',   
+    text: '#FFFFFF',
+    textSec: '#B0B0B0',
+    success: '#69F0AE',
+};
 
 interface SteamGame {
     steamId: number;
@@ -14,6 +37,8 @@ interface SteamGame {
 
 export default function ImportarBibliotecaScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
+    
     const [loading, setLoading] = useState(true);
     const [importando, setImportando] = useState(false);
     const [jogos, setJogos] = useState<SteamGame[]>([]);
@@ -96,27 +121,32 @@ export default function ImportarBibliotecaScreen() {
         }
     }
 
-    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#6200ee"/></View>;
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent}/></View>;
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+            
+            <View style={[styles.header, { marginTop: insets.top }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Sincronizar Steam</Text>
-                <View style={{width: 24}} />
+                <View style={{width: 40}} />
             </View>
 
-            <Text style={styles.subtitle}>
-                Selecione os jogos que deseja adicionar ao seu backlog.
-                {'\n'}Total encontrado: {jogos.length}
-            </Text>
+            <View style={styles.infoBox}>
+                <Ionicons name="cloud-download-outline" size={20} color={COLORS.highlight} />
+                <Text style={styles.subtitle}>
+                    Total encontrado: <Text style={{fontWeight: 'bold', color: '#fff'}}>{jogos.length}</Text>
+                    {'\n'}Selecione para importar
+                </Text>
+            </View>
 
             <FlatList
                 data={jogos}
                 keyExtractor={item => String(item.steamId)}
-                contentContainerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
                 initialNumToRender={10}
                 renderItem={({ item }) => {
                     const isSelected = selecionados.has(item.steamId);
@@ -124,6 +154,7 @@ export default function ImportarBibliotecaScreen() {
                         <TouchableOpacity 
                             style={[styles.card, isSelected && styles.cardSelected]} 
                             onPress={() => toggleSelecao(item.steamId)}
+                            activeOpacity={0.8}
                         >
                             <Image 
                                 source={{ uri: item.iconeUrl }} 
@@ -131,13 +162,16 @@ export default function ImportarBibliotecaScreen() {
                                 defaultSource={{ uri: 'https://cdn-icons-png.flaticon.com/512/262/262048.png' }}
                             />
                             <View style={styles.info}>
-                                <Text style={styles.gameTitle} numberOfLines={1}>{item.titulo}</Text>
+                                <Text style={[styles.gameTitle, isSelected && {color: COLORS.highlight}]} numberOfLines={1}>
+                                    {item.titulo}
+                                </Text>
                                 <Text style={styles.gameTime}>
-                                    {item.horasJogadas > 0 ? `${item.horasJogadas}h registradas` : 'Nunca jogado'}
+                                    {item.horasJogadas > 0 ? `${item.horasJogadas.toFixed(1)}h registradas` : 'Nunca jogado'}
                                 </Text>
                             </View>
+                            
                             <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-                                {isSelected && <Ionicons name="checkmark" size={16} color="#fff" />}
+                                {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
                             </View>
                         </TouchableOpacity>
                     );
@@ -145,16 +179,21 @@ export default function ImportarBibliotecaScreen() {
             />
 
             {selecionados.size > 0 && (
-                <View style={styles.floatingFooter}>
+                <View style={[styles.floatingFooter, { paddingBottom: insets.bottom + 10 }]}>
+                    <View style={styles.footerInfo}>
+                        <Text style={styles.footerCount}>{selecionados.size} itens</Text>
+                    </View>
+                    
                     <TouchableOpacity 
                         style={styles.btnImport} 
                         onPress={handleImportar}
                         disabled={importando}
+                        activeOpacity={0.9}
                     >
                         {importando ? (
-                            <ActivityIndicator color="#fff" />
+                            <ActivityIndicator color="#fff" size="small" />
                         ) : (
-                            <Text style={styles.btnImportText}>IMPORTAR {selecionados.size} JOGOS</Text>
+                            <Text style={styles.btnImportText}>IMPORTAR SELECIONADOS</Text>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -164,24 +203,95 @@ export default function ImportarBibliotecaScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5', paddingTop: 50, paddingBottom: 50 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 10 },
-    title: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-    subtitle: { paddingHorizontal: 20, marginBottom: 15, color: '#666', fontSize: 13 },
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
     
-    card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 10, padding: 10, borderRadius: 8, elevation: 1 },
-    cardSelected: { backgroundColor: '#e8eaf6', borderColor: '#6200ee', borderWidth: 1 },
+    header: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        paddingHorizontal: 20, 
+        paddingBottom: 15,
+        paddingTop: 10
+    },
+    backButton: {
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: COLORS.cardBg
+    },
+    title: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
     
-    icon: { width: 40, height: 40, borderRadius: 4, marginRight: 15 },
+    infoBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: 20,
+        marginBottom: 15,
+        padding: 12,
+        backgroundColor: COLORS.cardBg,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)'
+    },
+    subtitle: { marginLeft: 10, color: COLORS.textSec, fontSize: 13, lineHeight: 18 },
+    
+    card: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: COLORS.cardBg, 
+        marginBottom: 10, 
+        padding: 12, 
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'transparent'
+    },
+    cardSelected: { 
+        backgroundColor: COLORS.cardSelected, 
+        borderColor: COLORS.accent 
+    },
+    
+    icon: { width: 45, height: 45, borderRadius: 8, marginRight: 15, backgroundColor: '#222' },
     info: { flex: 1 },
-    gameTitle: { fontWeight: 'bold', color: '#333', fontSize: 14 },
-    gameTime: { color: '#888', fontSize: 12 },
+    gameTitle: { fontWeight: 'bold', color: COLORS.text, fontSize: 15, marginBottom: 2 },
+    gameTime: { color: COLORS.textSec, fontSize: 12 },
     
-    checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#ccc', justifyContent: 'center', alignItems: 'center' },
-    checkboxSelected: { backgroundColor: '#6200ee', borderColor: '#6200ee' },
+    checkbox: { 
+        width: 22, height: 22, 
+        borderRadius: 6, 
+        borderWidth: 2, 
+        borderColor: COLORS.textSec, 
+        justifyContent: 'center', alignItems: 'center' 
+    },
+    checkboxSelected: { 
+        backgroundColor: COLORS.accent, 
+        borderColor: COLORS.accent 
+    },
 
-    floatingFooter: { position: 'absolute', bottom: 50, left: 0, right: 0, backgroundColor: '#fff', padding: 20, elevation: 10, borderTopWidth: 1, borderTopColor: '#eee' },
-    btnImport: { backgroundColor: '#6200ee', padding: 15, borderRadius: 8, alignItems: 'center' },
-    btnImportText: { color: '#fff', fontWeight: 'bold' }
+    floatingFooter: { 
+        position: 'absolute', 
+        bottom: 0, left: 0, right: 0, 
+        backgroundColor: '#252836',
+        padding: 20, 
+        borderTopWidth: 1, 
+        borderTopColor: 'rgba(255,255,255,0.1)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+    },
+    footerInfo: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8
+    },
+    footerCount: { color: COLORS.highlight, fontWeight: 'bold', fontSize: 12 },
+
+    btnImport: { 
+        backgroundColor: COLORS.primary, 
+        paddingVertical: 14, 
+        paddingHorizontal: 24,
+        borderRadius: 12, 
+        alignItems: 'center',
+        elevation: 4
+    },
+    btnImportText: { color: '#fff', fontWeight: 'bold', fontSize: 14, letterSpacing: 0.5 }
 });

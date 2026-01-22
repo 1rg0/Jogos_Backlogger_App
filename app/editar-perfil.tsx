@@ -6,19 +6,37 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    KeyboardAvoidingView, Platform,
+    KeyboardAvoidingView, 
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
-    TextInput, TouchableOpacity,
-    View
+    TextInput, 
+    TouchableOpacity,
+    View,
+    StatusBar
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, { API_URL } from '../src/services/api';
 import { UsuarioDetailDTO, UsuarioUpdateDTO } from '../src/types/UsuarioDTO';
 import { Ionicons } from '@expo/vector-icons';
 
+const COLORS = {
+    background: '#363B4E',  
+    cardBg: 'rgba(0, 0, 0, 0.25)', 
+    primary: '#4F3B78',     
+    accent: '#927FBF',      
+    highlight: '#C4BBF0',   
+    text: '#FFFFFF',
+    textSec: '#B0B0B0',
+    inputBg: 'rgba(0,0,0,0.3)',
+    danger: '#EF5350'
+};
+
 export default function EditarPerfilScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
+    
     const [loading, setLoading] = useState(true);
     const [salvando, setSalvando] = useState(false);
     
@@ -125,70 +143,98 @@ export default function EditarPerfilScreen() {
 
     const getImagemUri = () => {
         if (novaImagem) return { uri: novaImagem.uri };
-        
         if (imagemPerfil) return { uri: `${API_URL}${imagemPerfil}` };
-        
         return null; 
     };
 
     const sourceImagem = getImagemUri();
 
-    if (loading) return <View style={styles.center}><ActivityIndicator color="#6200ee" size="large"/></View>;
+    if (loading) return <View style={styles.center}><ActivityIndicator color={COLORS.accent} size="large"/></View>;
 
     return (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{flex: 1}}>
-            <ScrollView contentContainerStyle={styles.container}>
-                
+        <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+            style={{flex: 1, backgroundColor: COLORS.background}}
+        >
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+            
+            <ScrollView 
+                contentContainerStyle={[styles.container, { paddingTop: insets.top + 10 }]}
+                keyboardShouldPersistTaps="handled"
+            >
                 <View style={styles.headerRow}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.btnBack}>
-                        <Ionicons name="arrow-back" size={24} color="#333" />
+                        <Ionicons name="arrow-back" size={24} color={COLORS.highlight} />
                     </TouchableOpacity>
-                    
                     <Text style={styles.headerTitle}>Editar Perfil</Text>
-                    
-                    <View style={{width: 24}} /> 
+                    <View style={{width: 30}} /> 
                 </View>
                 
                 <View style={styles.card}>
-                    <View style={styles.imageContainer}>
-                        {sourceImagem ? (
-                            <Image source={sourceImagem} style={styles.avatar} />
-                        ) : (
-                            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                <Text style={styles.avatarText}>{nome.charAt(0).toUpperCase()}</Text>
+                    <View style={styles.imageSection}>
+                        <TouchableOpacity onPress={escolherImagem} activeOpacity={0.8}>
+                            <View style={styles.avatarContainer}>
+                                {sourceImagem ? (
+                                    <Image source={sourceImagem} style={styles.avatar} />
+                                ) : (
+                                    <View style={styles.avatarPlaceholder}>
+                                        <Text style={styles.avatarText}>{nome.charAt(0).toUpperCase()}</Text>
+                                    </View>
+                                )}
+                                <View style={styles.cameraOverlay}>
+                                    <Ionicons name="camera" size={20} color="#fff" />
+                                </View>
                             </View>
-                        )}
-                        
-                        <TouchableOpacity style={styles.btnChangePhoto} onPress={escolherImagem}>
-                            <Text style={styles.btnChangePhotoText}>📷 Alterar Foto</Text>
                         </TouchableOpacity>
+                        <Text style={styles.changePhotoText}>Toque para alterar a foto</Text>
                     </View>
 
-                    <Text style={styles.label}>Nome Completo</Text>
-                    <TextInput 
-                        style={styles.input} 
-                        value={nome} 
-                        onChangeText={setNome} 
-                        placeholder="Seu nome"
-                    />
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Nome Completo</Text>
+                        <View style={styles.inputContainer}>
+                            <Ionicons name="person-outline" size={20} color={COLORS.highlight} style={styles.inputIcon} />
+                            <TextInput 
+                                style={styles.input} 
+                                value={nome} 
+                                onChangeText={setNome} 
+                                placeholder="Seu nome"
+                                placeholderTextColor={COLORS.textSec}
+                                cursorColor={COLORS.accent}
+                            />
+                        </View>
+                    </View>
 
-                    <Text style={styles.label}>Celular</Text>
-                    <TextInput 
-                        style={styles.input} 
-                        value={telefone} 
-                        onChangeText={setTelefone} 
-                        keyboardType="phone-pad"
-                        placeholder="(00) 00000-0000"
-                    />
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Celular</Text>
+                        <View style={styles.inputContainer}>
+                            <Ionicons name="call-outline" size={20} color={COLORS.highlight} style={styles.inputIcon} />
+                            <TextInput 
+                                style={styles.input} 
+                                value={telefone} 
+                                onChangeText={setTelefone} 
+                                keyboardType="phone-pad"
+                                placeholder="(00) 00000-0000"
+                                placeholderTextColor={COLORS.textSec}
+                                cursorColor={COLORS.accent}
+                            />
+                        </View>
+                    </View>
 
-                    <Text style={styles.label}>Steam ID</Text>
-                    <TextInput 
-                        style={styles.input} 
-                        value={steamId} 
-                        onChangeText={setSteamId} 
-                        keyboardType="numeric"
-                        placeholder="Ex: 76561198000000000"
-                    />
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Steam ID</Text>
+                        <View style={styles.inputContainer}>
+                            <Ionicons name="logo-steam" size={20} color={COLORS.highlight} style={styles.inputIcon} />
+                            <TextInput 
+                                style={styles.input} 
+                                value={steamId} 
+                                onChangeText={setSteamId} 
+                                keyboardType="numeric"
+                                placeholder="Ex: 76561198000000000"
+                                placeholderTextColor={COLORS.textSec}
+                                cursorColor={COLORS.accent}
+                            />
+                        </View>
+                    </View>
                 </View>
 
                 <View style={styles.rowButtons}>
@@ -201,7 +247,11 @@ export default function EditarPerfilScreen() {
                         onPress={handleSalvar}
                         disabled={salvando}
                     >
-                        {salvando ? <ActivityIndicator color="#fff"/> : <Text style={styles.textSave}>Salvar</Text>}
+                        {salvando ? (
+                            <ActivityIndicator color="#fff"/> 
+                        ) : (
+                            <Text style={styles.textSave}>Salvar Alterações</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -211,31 +261,79 @@ export default function EditarPerfilScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flexGrow: 1, padding: 20, backgroundColor: '#f5f5f5', paddingTop: 50 },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+    
+    container: { flexGrow: 1, padding: 20, paddingBottom: 50 },
+    
     headerRow: { 
         flexDirection: 'row', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: 20 
+        marginBottom: 25 
     },
-    btnBack: { padding: 5 },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-    card: { backgroundColor: '#fff', borderRadius: 12, padding: 20, elevation: 3, marginBottom: 20 },
+    btnBack: { 
+        padding: 8, 
+        backgroundColor: COLORS.cardBg, 
+        borderRadius: 20 
+    },
+    headerTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
     
-    imageContainer: { alignItems: 'center', marginBottom: 20 },
-    avatar: { width: 100, height: 100, borderRadius: 50 },
-    avatarPlaceholder: { backgroundColor: '#6200ee', justifyContent: 'center', alignItems: 'center' },
+    card: { 
+        backgroundColor: COLORS.cardBg, 
+        borderRadius: 16, 
+        padding: 20, 
+        marginBottom: 25,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)'
+    },
+    
+    imageSection: { alignItems: 'center', marginBottom: 25 },
+    avatarContainer: { position: 'relative' },
+    avatar: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: COLORS.accent },
+    avatarPlaceholder: { 
+        width: 120, height: 120, borderRadius: 60, 
+        backgroundColor: COLORS.primary, 
+        justifyContent: 'center', alignItems: 'center',
+        borderWidth: 3, borderColor: COLORS.accent
+    },
     avatarText: { color: '#fff', fontSize: 40, fontWeight: 'bold' },
-    btnChangePhoto: { marginTop: 10 },
-    btnChangePhotoText: { color: '#6200ee', fontWeight: 'bold', fontSize: 14 },
+    cameraOverlay: {
+        position: 'absolute', bottom: 0, right: 0,
+        backgroundColor: COLORS.accent,
+        width: 36, height: 36, borderRadius: 18,
+        justifyContent: 'center', alignItems: 'center',
+        borderWidth: 2, borderColor: COLORS.background
+    },
+    changePhotoText: { color: COLORS.highlight, marginTop: 10, fontSize: 14, fontWeight: '600' },
 
-    label: { fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 5, marginTop: 10 },
-    input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#f9f9f9', color: '#333' },
+    inputGroup: { marginBottom: 16 },
+    label: { fontSize: 12, fontWeight: 'bold', color: COLORS.textSec, marginBottom: 6, textTransform: 'uppercase' },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.inputBg,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: 12,
+        height: 50
+    },
+    inputIcon: { marginRight: 10 },
+    input: { flex: 1, color: COLORS.text, fontSize: 16 },
 
-    rowButtons: { flexDirection: 'row', gap: 10 },
-    btnCancel: { flex: 1, padding: 15, borderRadius: 8, backgroundColor: '#ddd', alignItems: 'center' },
-    btnSave: { flex: 1, padding: 15, borderRadius: 8, backgroundColor: '#6200ee', alignItems: 'center' },
-    textCancel: { fontWeight: 'bold', color: '#333' },
-    textSave: { fontWeight: 'bold', color: '#fff' }
+    rowButtons: { flexDirection: 'row', gap: 12 },
+    btnCancel: { 
+        flex: 1, padding: 16, borderRadius: 12, 
+        backgroundColor: 'rgba(255,255,255,0.05)', 
+        alignItems: 'center',
+        borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)'
+    },
+    btnSave: { 
+        flex: 2, padding: 16, borderRadius: 12, 
+        backgroundColor: COLORS.primary, 
+        alignItems: 'center',
+        elevation: 4
+    },
+    textCancel: { fontWeight: 'bold', color: COLORS.textSec },
+    textSave: { fontWeight: 'bold', color: '#fff' },
 });
