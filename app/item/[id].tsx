@@ -17,7 +17,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../../src/services/api';
 
-// --- PALETA DE CORES ---
 const COLORS = {
     background: '#363B4E',  
     cardBg: '#222', 
@@ -137,14 +136,12 @@ export default function ItemDetalhesScreen() {
 
   if (!item) return null;
 
-  // Imagem de fundo principal (Capa grande ou Ícone)
   const bgImage = item.jogo.imagem || item.jogo.icone;
 
   return (
     <View style={styles.container}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         
-        {/* HEADER IMERSIVO COM IMAGEM DE FUNDO */}
         <ImageBackground 
             source={bgImage ? { uri: bgImage } : undefined} 
             style={[styles.headerImage, { paddingTop: insets.top }]}
@@ -152,12 +149,10 @@ export default function ItemDetalhesScreen() {
         >
             <View style={styles.headerOverlay} />
             
-            {/* Botão Voltar */}
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                 <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
 
-            {/* Informações do Jogo (Sobreposto à imagem) */}
             <View style={styles.headerContent}>
                 <Text style={styles.titulo}>{item.jogo.titulo}</Text>
                 <Text style={styles.dev}>{item.jogo.desenvolvedora}</Text>
@@ -172,13 +167,11 @@ export default function ItemDetalhesScreen() {
             </View>
         </ImageBackground>
 
-        {/* CONTEÚDO SCROLLÁVEL */}
         <ScrollView 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 100 }}
             style={styles.scrollContainer}
         >
-          {/* SEÇÃO: STATUS */}
           <View style={styles.section}>
             <Text style={styles.labelSection}>Status Atual</Text>
             <View style={styles.row}>
@@ -216,7 +209,6 @@ export default function ItemDetalhesScreen() {
             </View>
           </View>
 
-          {/* SEÇÃO: PROGRESSO */}
           <View style={styles.section}>
             <Text style={styles.labelSection}>Meu Progresso</Text>
             <View style={styles.row}>
@@ -253,7 +245,6 @@ export default function ItemDetalhesScreen() {
             </Text>
           </View>
 
-          {/* SEÇÃO: SINOPSE */}
           <View style={styles.section}>
             <Text style={styles.labelSection}>Sinopse</Text>
             <Text style={styles.sinopseText}>
@@ -263,7 +254,6 @@ export default function ItemDetalhesScreen() {
 
         </ScrollView>
 
-        {/* BOTÃO FLUTUANTE DE SALVAR */}
         <View style={[styles.footerContainer, { paddingBottom: insets.bottom + 10 }]}>
             <TouchableOpacity 
                 style={styles.btnSalvar} 
@@ -286,7 +276,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   
-  // Header Imersivo
   headerImage: {
       width: '100%',
       height: 300,
@@ -294,8 +283,7 @@ const styles = StyleSheet.create({
   },
   headerOverlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0,0,0,0.4)', // Escurece a imagem
-      // Gradiente fake via background se quisesse, mas overlay sólido resolve
+      backgroundColor: 'rgba(0,0,0,0.4)',
   },
   backBtn: {
       marginTop: 10,
@@ -311,7 +299,6 @@ const styles = StyleSheet.create({
   headerContent: {
       padding: 20,
       paddingBottom: 30,
-      // Fundo degradê fake para o texto ficar legível
       backgroundColor: 'rgba(0,0,0,0.6)'
   },
   titulo: { fontSize: 28, fontWeight: 'bold', color: '#fff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 4 },
@@ -324,13 +311,12 @@ const styles = StyleSheet.create({
   },
   tagText: { fontSize: 12, color: '#fff', fontWeight: 'bold' },
 
-  // Conteúdo
   scrollContainer: { 
       flex: 1, 
       backgroundColor: COLORS.background, 
       borderTopLeftRadius: 24, 
       borderTopRightRadius: 24, 
-      marginTop: -20, // Sobe por cima da imagem
+      marginTop: -20,
       paddingTop: 20
   },
   
@@ -347,7 +333,6 @@ const styles = StyleSheet.create({
   
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   
-  // Botões de Status
   btnStatus: { 
       flex: 1, 
       padding: 12, 
@@ -362,10 +347,9 @@ const styles = StyleSheet.create({
   btnInfo: { backgroundColor: COLORS.info, borderColor: COLORS.info },
   
   btnText: { fontWeight: 'bold', fontSize: 13 },
-  textWhite: { color: '#000' }, // Texto preto em fundos claros/neon
+  textWhite: { color: '#000' },
   textSec: { color: COLORS.textSec },
 
-  // Inputs
   labelInput: { fontSize: 12, color: COLORS.textSec, marginBottom: 5, fontWeight: 'bold' },
   inputContainer: {
       flexDirection: 'row',
@@ -387,7 +371,6 @@ const styles = StyleSheet.create({
   
   sinopseText: { fontSize: 15, lineHeight: 24, color: '#ddd', textAlign: 'justify' },
 
-  // Footer Fixo
   footerContainer: {
       paddingHorizontal: 20,
       paddingTop: 10,

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -20,6 +20,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import api from '../../src/services/api';
 import { ItemBacklog } from '../../src/types/ItemBacklog';
+
+import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { API_URL } from '../../src/services/api';
 
 const COLORS = {
     background: '#363B4E',  
@@ -155,6 +158,42 @@ export default function HomeScreen() {
       carregarDados();
     }, [])
   );
+
+  useEffect(() => {
+    let connection: any;
+
+    const startConnection = async () => {
+      const jsonValue = await AsyncStorage.getItem('usuario_logado');
+      if (!jsonValue) return;
+      const usuario = JSON.parse(jsonValue);
+
+      connection = new HubConnectionBuilder()
+        .withUrl(`${API_URL}/jogoHub`)
+        .configureLogging(LogLevel.Information)
+        .build();
+
+      try {
+        await connection.start();
+
+        await connection.invoke("JoinUserGroup", String(usuario.id));
+
+        connection.on("ReceberAtualizacaoHoras", () => {
+            carregarDados();
+        });
+
+      } catch (err) {
+        console.error("Erro no SignalR:", err);
+      }
+    };
+
+    startConnection();
+
+    return () => {
+      if (connection) {
+        connection.stop();
+      }
+    };
+  }, []);
 
   async function carregarDados() {
     try {

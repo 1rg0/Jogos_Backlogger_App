@@ -10,7 +10,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api, {API_URL} from '../../src/services/api';
 import { UsuarioDetailDTO } from '../../src/types/UsuarioDTO';
 
-// --- PALETA DE CORES ---
 const COLORS = {
     background: '#363B4E',  
     cardBg: 'rgba(0, 0, 0, 0.25)', 
@@ -133,7 +132,6 @@ export default function PerfilScreen() {
             style={styles.container} 
             contentContainerStyle={{paddingBottom: 100, paddingTop: insets.top}}
         >
-            {/* CABEÇALHO DO PERFIL */}
             <View style={styles.header}>
                 <View style={styles.avatarContainer}>
                     {usuario.imagemPerfil ? (
@@ -163,7 +161,6 @@ export default function PerfilScreen() {
                 </View>
             </View>
 
-            {/* SEÇÃO: DADOS PESSOAIS */}
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Ionicons name="person-outline" size={20} color={COLORS.highlight} />
@@ -185,7 +182,6 @@ export default function PerfilScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* SEÇÃO: INTEGRAÇÕES */}
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Ionicons name="logo-steam" size={20} color={COLORS.highlight} />
@@ -196,7 +192,6 @@ export default function PerfilScreen() {
 
                 <InfoRow label="Steam ID" value={usuario.steamId || "Não vinculado"} />
                 
-                {/* Botão de Importar/Sincronizar (Destaque) */}
                 <TouchableOpacity 
                     style={styles.btnSync} 
                     onPress={() => router.push('/importar-biblioteca')}
@@ -209,7 +204,6 @@ export default function PerfilScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* SEÇÃO: SEGURANÇA */}
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.highlight} />
@@ -224,7 +218,6 @@ export default function PerfilScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* LOGOUT */}
             <TouchableOpacity style={styles.btnLogout} onPress={handleLogout}>
                 <Ionicons name="log-out-outline" size={20} color={COLORS.danger} style={{marginRight: 8}} />
                 <Text style={styles.btnLogoutText}>SAIR DO APP</Text>
@@ -233,7 +226,6 @@ export default function PerfilScreen() {
             <Text style={styles.version}>Versão 1.0.0</Text>
         </ScrollView>
 
-        {/* MODAL DE SENHA (DARK MODE) */}
         <Modal
             animationType="fade"
             transparent={true}
@@ -332,7 +324,6 @@ const styles = StyleSheet.create({
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
 
-  // --- SEÇÕES (CARDS) ---
   section: { 
       backgroundColor: COLORS.cardBg, 
       marginHorizontal: 20, borderRadius: 16, 
@@ -381,7 +372,7 @@ const styles = StyleSheet.create({
   btnLogoutText: { color: COLORS.danger, fontWeight: 'bold', fontSize: 14, letterSpacing: 0.5 },
   version: { textAlign: 'center', color: '#555', marginTop: 10, fontSize: 10 },
 
-  // --- MODAL ---
+
   modalOverlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'center', padding: 20 },
   modalContent: { 
       backgroundColor: '#2C2C2C', borderRadius: 16, padding: 24, 
