@@ -19,7 +19,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../src/services/api';
 
-// --- PALETA DE CORES ---
 const COLORS = {
     background: '#363B4E',  
     primary: '#4F3B78',     
@@ -27,11 +26,9 @@ const COLORS = {
     highlight: '#C4BBF0',   
     inputBg: 'rgba(0, 0, 0, 0.2)', 
     text: '#FFFFFF',
-    success: '#69F0AE', // Verde Neon para validação
-    error: '#FF5252'    // Vermelho (caso precise)
+    success: '#69F0AE',
+    error: '#FF5252'
 };
-
-// --- COMPONENTES AUXILIARES ---
 
 interface CustomInputProps {
     iconName: keyof typeof Ionicons.glyphMap;
@@ -107,7 +104,6 @@ const GenderButton = ({
     );
 };
 
-// Componente para validar regras de senha
 const PasswordRequirement = ({ label, met }: { label: string, met: boolean }) => (
     <View style={styles.reqContainer}>
         <Ionicons 
@@ -121,8 +117,6 @@ const PasswordRequirement = ({ label, met }: { label: string, met: boolean }) =>
         </Text>
     </View>
 );
-
-// --- TELA PRINCIPAL ---
 
 export default function CadastroScreen() {
   const router = useRouter();
@@ -140,7 +134,6 @@ export default function CadastroScreen() {
 
   const [campoFocado, setCampoFocado] = useState<string | null>(null);
 
-  // Estados de Validação da Senha
   const [senhaValida, setSenhaValida] = useState(false);
   const reqs = {
       min6: senha.length >= 6,
@@ -151,7 +144,6 @@ export default function CadastroScreen() {
   };
 
   useEffect(() => {
-      // Verifica se TODAS as regras são verdadeiras
       const isValid = Object.values(reqs).every(r => r === true);
       setSenhaValida(isValid);
   }, [senha]);
@@ -329,7 +321,6 @@ export default function CadastroScreen() {
                     setFocusedId={setCampoFocado}
                 />
 
-                {/* --- REGRAS DE SENHA --- */}
                 <View style={styles.passwordRulesContainer}>
                     <PasswordRequirement label="Mínimo de 6 caracteres" met={reqs.min6} />
                     <PasswordRequirement label="Ao menos uma letra maiúscula" met={reqs.upper} />
@@ -353,7 +344,7 @@ export default function CadastroScreen() {
                 <TouchableOpacity 
                     style={[styles.button, !senhaValida && { opacity: 0.5 }]} 
                     onPress={handleCadastro}
-                    disabled={loading} // Não desabilita se a senha for inválida, apenas mostra o alerta, ou você pode usar (loading || !senhaValida)
+                    disabled={loading}
                     activeOpacity={0.8}
                 >
                     {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>CRIAR CONTA</Text>}
@@ -454,7 +445,6 @@ const styles = StyleSheet.create({
   genderText: { fontSize: 13, color: COLORS.highlight, fontWeight: '500' },
   genderTextSelected: { color: '#fff', fontWeight: 'bold' },
 
-  // Estilos das Regras de Senha
   passwordRulesContainer: {
       marginTop: -5,
       marginBottom: 15,

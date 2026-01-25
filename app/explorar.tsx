@@ -21,7 +21,6 @@ import { ItemBacklog } from '../src/types/ItemBacklog';
 import { ItemBacklogCreateDTO } from '../src/types/ItemBacklogDTO';
 import { Jogo } from '../src/types/Jogo';
 
-// --- PALETA DE CORES ---
 const COLORS = {
     background: '#363B4E',  
     cardBg: 'rgba(0, 0, 0, 0.25)', 
@@ -38,8 +37,8 @@ const COLORS = {
 interface SteamJogoResult {
     steamId: number;
     titulo: string;
-    capa: string;  // Banner (header_image)
-    icone: string; // Ícone pequeno (tiny_image) - AGORA VEM DO BACKEND
+    capa: string;
+    icone: string;
 }
 
 export default function ExplorarScreen() {
@@ -110,7 +109,6 @@ export default function ExplorarScreen() {
       setLoading(true);
       try {
           const response = await api.get(`/api/Steam/search?q=${busca}`);
-          // Agora response.data deve conter [{ steamId, titulo, capa, icone }]
           setListaSteam(response.data);
       } catch (error) {
           console.error(error);
@@ -153,11 +151,10 @@ export default function ExplorarScreen() {
           if(usuarioJson != null){
               const usuario = JSON.parse(usuarioJson);
               
-              // Payload corrigido: Envia o Ícone específico
               const payload = {
                   steamId: itemSteam.steamId,
                   usuarioId: usuario.id,
-                  iconeUrl: itemSteam.icone || itemSteam.capa // Usa ícone se tiver, senão capa
+                  iconeUrl: itemSteam.icone || itemSteam.capa
               };
 
               await api.post('/api/ItemBacklog/importar-steam', payload);
@@ -252,7 +249,6 @@ export default function ExplorarScreen() {
           )}
 
           renderItem={({ item }) => {
-            // Lógica ajustada: Se tiver 'icone' (Steam novo), usa. Se não, tenta 'icone' (Local) ou 'capa' (fallback)
             // @ts-ignore
             const imagemUri = item.icone || item.capa;
             
